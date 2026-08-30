@@ -13,7 +13,7 @@ Production intentionally refuses to boot with placeholder legal or delivery conf
 
 ## Deploy
 
-Provision PostgreSQL and Valkey, then deploy the Phoenix root and `mcp-gateway` as separate services. The Phoenix pre-deploy command runs `/app/bin/migrate`; both services use `/readyz` health checks. Give both services public HTTPS domains. The gateway’s private `CORE_URL` should address the Phoenix service over Railway’s private network.
+Provision PostgreSQL and Valkey, then deploy the Phoenix root and `mcp-gateway` as separate services. The Phoenix image runs migrations before starting and the Railway pre-deploy command also runs `/app/bin/migrate`; both paths are safe to repeat. Both services use `/readyz` health checks. Give both services public HTTPS domains. The gateway’s private `CORE_URL` should address the Phoenix service over Railway’s private network.
 
 ## Before announcing
 
