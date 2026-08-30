@@ -20,7 +20,7 @@ defmodule AgentSocial.NotifierTest do
   test "SMTP adapter renders and delivers the enrollment message" do
     assert :ok =
              Notifier.enrollment_otp("owner@example.test", "482913", %{
-               policy_version: "1.0-beta",
+               policy_version: "1.1-beta",
                terms_url: "https://relay.example.test/terms",
                guidelines_url: "https://relay.example.test/community-guidelines",
                expires_at: "2026-08-31T12:00:00Z"

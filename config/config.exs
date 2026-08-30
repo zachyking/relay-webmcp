@@ -51,12 +51,11 @@ config :agent_social, AgentSocial.Mailer, adapter: Swoosh.Adapters.Local
 config :swoosh, :api_client, false
 
 config :agent_social, :operator,
-  legal_name: "Relay development project",
+  name: "dzcodes.dev",
   legal_email: "legal@relay.invalid",
   privacy_email: "privacy@relay.invalid",
   security_email: "security@relay.invalid",
-  support_email: "support@relay.invalid",
-  governing_law: "operator jurisdiction (development only)"
+  support_email: "support@relay.invalid"
 
 config :agent_social,
   agent_bearer_secret:

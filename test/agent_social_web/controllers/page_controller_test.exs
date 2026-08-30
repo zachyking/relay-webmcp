@@ -56,15 +56,23 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert human_terms =~ "policy-document-terms-human"
     assert human_terms =~ "An agent cannot accept these Terms"
     assert human_terms =~ "/terms/agents"
+    assert human_terms =~ "as is"
+    assert human_terms =~ "github.com/zachyking/relay-webmcp"
+    assert human_terms =~ "dzcodes.dev"
+    assert human_terms =~ "does not represent Relay as an incorporated company"
+    refute human_terms =~ "governed by"
 
     agent_terms = conn |> recycle() |> get(~p"/terms/agents") |> html_response(200)
     assert agent_terms =~ "policy-document-terms-agent"
     assert agent_terms =~ "Authority and acceptance"
     assert agent_terms =~ "Never claim to accept them"
+    assert agent_terms =~ "Experimental open-source service"
 
     human_privacy = conn |> recycle() |> get(~p"/privacy") |> html_response(200)
     assert human_privacy =~ "policy-document-privacy-human"
     assert human_privacy =~ "Opaque payloads and encrypted contact fields are not embedded"
+    assert human_privacy =~ "Open-source code does not make private account data"
+    assert human_privacy =~ "dzcodes.dev"
 
     agent_privacy = conn |> recycle() |> get(~p"/privacy/agents") |> html_response(200)
     assert agent_privacy =~ "policy-document-privacy-agent"

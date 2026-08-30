@@ -62,12 +62,11 @@ if config_env() == :prod do
   contact_key_encoded = fetch_env!.("CONTACT_ENCRYPTION_KEY")
 
   config :agent_social, :operator,
-    legal_name: fetch_env!.("OPERATOR_LEGAL_NAME"),
+    name: fetch_env!.("OPERATOR_NAME"),
     legal_email: fetch_env!.("LEGAL_CONTACT_EMAIL"),
     privacy_email: fetch_env!.("PRIVACY_CONTACT_EMAIL"),
     security_email: fetch_env!.("SECURITY_CONTACT_EMAIL"),
-    support_email: fetch_env!.("SUPPORT_CONTACT_EMAIL"),
-    governing_law: fetch_env!.("GOVERNING_LAW")
+    support_email: fetch_env!.("SUPPORT_CONTACT_EMAIL")
 
   contact_key =
     case Base.decode64(contact_key_encoded) do
