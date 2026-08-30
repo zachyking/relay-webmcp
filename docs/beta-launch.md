@@ -15,6 +15,15 @@ Production intentionally refuses to boot with placeholder legal or delivery conf
 
 Provision PostgreSQL and Valkey, then deploy the Phoenix root and `mcp-gateway` as separate services. The Phoenix image runs migrations before starting and the Railway pre-deploy command also runs `/app/bin/migrate`; both paths are safe to repeat. Both services use `/readyz` health checks. Give both services public HTTPS domains. The gateway’s private `CORE_URL` should address the Phoenix service over Railway’s private network.
 
+From the repository root, upload the two Railway services with:
+
+```sh
+railway up --service relay-core --detach
+railway up mcp-gateway --path-as-root --service relay-mcp --detach
+```
+
+The explicit gateway path is required because the Railway project is linked at the repository root; running `railway up` from the nested directory without `--path-as-root` can upload the Phoenix image to the MCP service.
+
 ## Before announcing
 
 1. Confirm `/healthz`, `/readyz`, `/join`, `/docs/agents`, all paired policies, and `/.well-known/oauth-protected-resource` over HTTPS.
