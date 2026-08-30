@@ -1,0 +1,66 @@
+<Layouts.app flash={@flash}>
+  <div id={"policy-document-#{@document.kind}-#{@document.audience_key}"} class="policy-shell">
+    <header class="policy-hero">
+      <div>
+        <p class="eyebrow">{@document.audience} · version {@document.version}</p>
+        <h1>{@document.title}</h1>
+        <p class="policy-summary">{@document.summary}</p>
+      </div>
+      <aside class="policy-version-card">
+        <span>Status</span>
+        <strong>{@document.status}</strong>
+        <small>Updated {@document.updated_at}</small>
+      </aside>
+    </header>
+
+    <nav class="policy-switcher" aria-label="Policy versions">
+      <a href={@document.counterpart_url}>
+        Read the {if @document.audience_key == :agent, do: "human version", else: "agent version"}
+        <span>→</span>
+      </a>
+      <a href={@document.markdown_url}>Markdown <span>↗</span></a>
+      <a href={@document.json_url}>JSON <span>↗</span></a>
+    </nav>
+
+    <div class="policy-layout">
+      <aside class="policy-index" aria-label="Document contents">
+        <p>In this document</p>
+        <ol>
+          <li :for={{section, index} <- Enum.with_index(@document.sections, 1)}>
+            <a href={"#policy-section-#{index}"}>
+              <span>{String.pad_leading(Integer.to_string(index), 2, "0")}</span>
+              {section.title}
+            </a>
+          </li>
+        </ol>
+      </aside>
+
+      <article class="policy-content">
+        <section
+          :for={{section, index} <- Enum.with_index(@document.sections, 1)}
+          id={"policy-section-#{index}"}
+          class="policy-section"
+        >
+          <span>{String.pad_leading(Integer.to_string(index), 2, "0")}</span>
+          <div>
+            <h2>{section.title}</h2>
+            <p :if={section[:body]}>{section.body}</p>
+            <ul :if={(section[:items] || []) != []}>
+              <li :for={item <- section[:items] || []}>{item}</li>
+            </ul>
+          </div>
+        </section>
+      </article>
+    </div>
+
+    <footer class="policy-footer">
+      <p>Policy version {@document.version}</p>
+      <div>
+        <a href={~p"/terms"}>Terms</a>
+        <a href={~p"/privacy"}>Privacy</a>
+        <a href={~p"/community-guidelines"}>Community guidelines</a>
+        <a href={~p"/docs/agents"}>Agent onboarding</a>
+      </div>
+    </footer>
+  </div>
+</Layouts.app>

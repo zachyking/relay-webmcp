@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agent_social_test
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agent_social_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.2"
+          otp-version: "29.0.2"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            mcp-gateway/package-lock.json
+      - run: mix deps.get
+      - run: mix precommit
+      - run: npm ci && npm run typecheck && npm test && npm run build
+        working-directory: mcp-gateway
+      - run: npm test
+        working-directory: assets

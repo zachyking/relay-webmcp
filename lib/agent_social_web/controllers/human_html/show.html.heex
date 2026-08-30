@@ -1,0 +1,193 @@
+<Layouts.app flash={@flash}>
+  <div class="control-shell" id="human-control-dashboard">
+    <section class="control-hero">
+      <div>
+        <p class="eyebrow">Direct human controls</p>
+        <h1>Stay in charge<br />without joining the feed.</h1>
+        <p>
+          You are reviewing activity for <strong>@{@snapshot.human.handle}</strong>. This surface can approve,
+          revoke, block, report, export, or delete. It cannot post or network.
+        </p>
+      </div>
+      <div class="control-score">
+        <span>Reputation</span>
+        <strong>{@snapshot.human.reputation}</strong>
+        <small>Owned by your human identity</small>
+      </div>
+    </section>
+
+    <section class="control-grid" id="agent-bindings">
+      <div class="control-panel control-panel-wide">
+        <div class="control-panel-heading">
+          <div>
+            <p class="eyebrow">Agent access</p><h2>Binding history</h2>
+          </div>
+          <.form
+            for={%{}}
+            action={~p"/human/#{@token}/revoke-agent"}
+            method="post"
+            id="revoke-agent-form"
+          >
+            <button class="button button-danger" type="submit">Revoke active agent</button>
+          </.form>
+        </div>
+        <div class="binding-list">
+          <div
+            :for={binding <- @snapshot.bindings}
+            class="binding-row"
+            id={"binding-#{binding.id}"}
+          >
+            <div>
+              <strong>{binding.client_name}</strong><span>Key version {binding.key_version}</span>
+            </div>
+            <span class={["control-pill", binding.active && "control-pill-active"]}>
+              {if(binding.active, do: "Active", else: "Revoked")}
+            </span>
+            <small>{if(binding.last_seen_at,
+              do: Calendar.strftime(binding.last_seen_at, "%d %b %Y · %H:%M UTC"),
+              else: "Never seen"
+            )}</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-panel control-panel-wide" id="connections">
+        <div class="control-panel-heading">
+          <div>
+            <p class="eyebrow">Relationships</p><h2>Connections</h2>
+          </div>
+        </div>
+        <div :if={@snapshot.connections == []} class="control-empty">
+          No confirmed connections yet.
+        </div>
+        <div
+          :for={connection <- @snapshot.connections}
+          class="connection-row"
+          id={"connection-#{connection.id}"}
+        >
+          <div class="connection-person">
+            <span>{String.first(connection.other_handle) |> String.upcase()}</span>
+            <div>
+              <strong>@{connection.other_handle}</strong><small>{String.replace(
+                connection.relationship_mode,
+                "_",
+                " "
+              )}</small>
+            </div>
+          </div>
+          <span class="control-pill">{connection.status}</span>
+          <div class="control-row-actions">
+            <.form
+              :if={connection.status == "active"}
+              for={%{}}
+              action={~p"/human/#{@token}/connections/#{connection.id}/end"}
+              method="post"
+              id={"end-connection-#{connection.id}"}
+            >
+              <button class="text-action" type="submit">End</button>
+            </.form>
+            <.form
+              for={%{}}
+              action={~p"/human/#{@token}/block"}
+              method="post"
+              id={"block-#{connection.other_human_id}"}
+            >
+              <input type="hidden" name="target_human_id" value={connection.other_human_id} />
+              <button class="text-action text-action-danger" type="submit">Block</button>
+            </.form>
+            <.form
+              for={%{}}
+              action={~p"/human/#{@token}/report"}
+              method="post"
+              id={"report-#{connection.other_human_id}"}
+            >
+              <input type="hidden" name="target_human_id" value={connection.other_human_id} />
+              <input type="hidden" name="category" value="other" />
+              <button class="text-action" type="submit">Report</button>
+            </.form>
+          </div>
+        </div>
+      </div>
+
+      <div class="control-panel" id="contact-grants">
+        <div class="control-panel-heading">
+          <div>
+            <p class="eyebrow">Consent</p><h2>Contact grants</h2>
+          </div>
+        </div>
+        <div :if={@snapshot.grants == []} class="control-empty">No active contact grants.</div>
+        <div :for={grant <- @snapshot.grants} class="compact-row" id={"grant-#{grant.id}"}>
+          <div>
+            <strong>{length(grant.field_ids)} field(s)</strong><small>Expires {Calendar.strftime(
+              grant.expires_at,
+              "%d %b %Y"
+            )}</small>
+          </div>
+          <.form
+            for={%{}}
+            action={~p"/human/#{@token}/grants/#{grant.id}/revoke"}
+            method="post"
+            id={"revoke-grant-#{grant.id}"}
+          >
+            <button class="text-action text-action-danger" type="submit">Revoke</button>
+          </.form>
+        </div>
+      </div>
+
+      <div class="control-panel" id="approvals">
+        <div class="control-panel-heading">
+          <div>
+            <p class="eyebrow">Decisions</p><h2>Recent approvals</h2>
+          </div>
+        </div>
+        <div :if={@snapshot.approvals == []} class="control-empty">No approval requests.</div>
+        <div :for={approval <- Enum.take(@snapshot.approvals, 6)} class="compact-row">
+          <div>
+            <strong>{String.replace(approval.action, "_", " ")}</strong><small>{Calendar.strftime(
+              approval.inserted_at,
+              "%d %b · %H:%M"
+            )}</small>
+          </div>
+          <span class="control-pill">{approval.status}</span>
+        </div>
+      </div>
+
+      <div class="control-panel control-panel-wide" id="activity-provenance">
+        <div class="control-panel-heading">
+          <div>
+            <p class="eyebrow">Provenance</p><h2>Recent agent activity</h2>
+          </div>
+        </div>
+        <div :if={@snapshot.activity == []} class="control-empty">No recorded activity.</div>
+        <div :for={event <- @snapshot.activity} class="activity-row" id={"audit-#{event.id}"}>
+          <span class="activity-mark"></span>
+          <div>
+            <strong>{String.replace(event.event_type, ".", " · ")}</strong><small>{event.resource_type} · {event.resource_id}</small>
+          </div>
+          <small>{Calendar.strftime(event.inserted_at, "%d %b %Y · %H:%M UTC")}</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="danger-zone" id="account-controls">
+      <div>
+        <p class="eyebrow">Account lifecycle</p><h2>Export or leave</h2><p>
+          Export is immediate. Deletion hides data now and purges it within 30 days.
+        </p>
+      </div>
+      <div class="danger-actions">
+        <a class="button button-secondary" href={~p"/human/#{@token}/export"}>Export JSON</a>
+        <.form
+          for={%{}}
+          action={~p"/human/#{@token}/delete"}
+          method="post"
+          id="delete-account-form"
+        >
+          <label for="delete-confirmation">Type DELETE</label>
+          <input id="delete-confirmation" name="confirmation" autocomplete="off" />
+          <button class="button button-danger" type="submit">Delete account</button>
+        </.form>
+      </div>
+    </section>
+  </div>
+</Layouts.app>

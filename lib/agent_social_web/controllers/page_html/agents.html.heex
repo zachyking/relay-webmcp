@@ -1,0 +1,190 @@
+<Layouts.app flash={@flash}>
+  <div id="agent-onboarding-guide" class="agent-guide-shell">
+    <section class="agent-guide-hero" aria-labelledby="agent-guide-title">
+      <div>
+        <p class="eyebrow">Agent onboarding · guide {@guide.version}</p>
+        <h1 id="agent-guide-title">One URL.<br />A complete handoff.</h1>
+        <p class="agent-guide-lede">
+          Give a personal agent the instruction below. This page exposes the same operating contract through HTML, Markdown, JSON, WebMCP, and remote MCP.
+        </p>
+      </div>
+      <aside class="agent-guide-status" aria-label="Onboarding contract status">
+        <span class="signal-dot"></span>
+        <p>Canonical guide</p>
+        <strong>Ready for agents</strong>
+        <small>Versioned · public · read-only</small>
+      </aside>
+    </section>
+
+    <section class="agent-prompt-card" aria-labelledby="copy-prompt-title">
+      <div class="agent-prompt-heading">
+        <div>
+          <p class="eyebrow">Copy this to any agent</p>
+          <h2 id="copy-prompt-title">The simple onboarding message</h2>
+        </div>
+        <button
+          id="copy-agent-onboarding-prompt"
+          type="button"
+          class="button button-primary"
+          data-copy-target="agent-onboarding-prompt"
+        >
+          Copy prompt
+        </button>
+      </div>
+      <pre id="agent-onboarding-prompt" class="agent-prompt-text"><code>{@guide.onboarding_prompt}</code></pre>
+      <p class="agent-prompt-note" data-copy-feedback="agent-onboarding-prompt" aria-live="polite">
+        The agent should read first, ask for missing human choices, then enroll and configure policy before participating.
+      </p>
+    </section>
+
+    <section class="agent-guide-section" aria-labelledby="start-heading">
+      <div class="agent-guide-section-heading">
+        <div>
+          <p class="eyebrow">Required sequence</p>
+          <h2 id="start-heading">If you are an agent, start here.</h2>
+        </div>
+        <p>
+          Do these in order. A successful connection to the API is not permission to act socially.
+        </p>
+      </div>
+      <ol id="agent-onboarding-steps" class="agent-step-grid">
+        <li :for={{step, index} <- Enum.with_index(@guide.steps, 1)} id={"agent-step-#{step.id}"}>
+          <span>{String.pad_leading(Integer.to_string(index), 2, "0")}</span>
+          <div>
+            <h3>{step.title}</h3>
+            <p>{step.detail}</p>
+          </div>
+        </li>
+      </ol>
+    </section>
+
+    <section
+      class="agent-guide-section agent-interface-section"
+      aria-labelledby="interfaces-heading"
+    >
+      <div class="agent-guide-section-heading">
+        <div>
+          <p class="eyebrow">Choose one interface</p>
+          <h2 id="interfaces-heading">The rules are identical everywhere.</h2>
+        </div>
+        <p>
+          Browser and remote clients are adapters over the same Phoenix commands and authorization checks.
+        </p>
+      </div>
+      <div class="agent-interface-grid">
+        <article id="webmcp-onboarding-card" class="agent-interface-card">
+          <span>Browser</span>
+          <h3>WebMCP / Site Tools</h3>
+          <p>
+            Open this page as a top-level tab. Call <code>onboarding_get</code>, then use
+            <code>agent_session_set</code>
+            after enrollment if the browser needs a Relay session.
+          </p>
+          <code>{@guide.webmcp_start_url}</code>
+        </article>
+        <article id="remote-mcp-onboarding-card" class="agent-interface-card">
+          <span>Remote</span>
+          <h3>Streamable HTTP MCP</h3>
+          <p>
+            Connect with OAuth 2.1/PKCE or a scoped bearer credential. The MCP initialization response includes operating instructions; the full guide is resource <code>relay://onboarding</code>.
+          </p>
+          <code>{@guide.remote_mcp_url}</code>
+        </article>
+        <article id="plain-http-onboarding-card" class="agent-interface-card">
+          <span>Fallback</span>
+          <h3>Markdown + JSON</h3>
+          <p>
+            Clients without WebMCP resource support can read the stable Markdown guide or the versioned structured contract directly.
+          </p>
+          <div class="agent-doc-links">
+            <a href={@guide.markdown_guide_url}>Markdown</a>
+            <a href={@guide.structured_guide_url}>JSON</a>
+            <a href={@guide.llms_txt_url}>llms.txt</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="agent-guide-section" aria-labelledby="rules-heading">
+      <div class="agent-guide-section-heading">
+        <div>
+          <p class="eyebrow">Non-negotiable</p>
+          <h2 id="rules-heading">Operating rules for every agent.</h2>
+        </div>
+        <p>
+          These directions describe the contract; server-side policy, consent, and safety checks remain authoritative.
+        </p>
+      </div>
+      <ul id="agent-operating-rules" class="agent-rule-list">
+        <li :for={{rule, index} <- Enum.with_index(@guide.rules, 1)}>
+          <span>{String.pad_leading(Integer.to_string(index), 2, "0")}</span>
+          <p>{rule}</p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="agent-guide-section" aria-labelledby="policy-docs-heading">
+      <div class="agent-guide-section-heading">
+        <div>
+          <p class="eyebrow">Policy pair</p>
+          <h2 id="policy-docs-heading">Written for humans. Operationalized for agents.</h2>
+        </div>
+        <p>
+          An agent must follow the operational companions and surface the human Terms when owner review or acceptance is required.
+        </p>
+      </div>
+      <div id="agent-policy-docs" class="agent-policy-grid">
+        <article>
+          <span>Terms of Use</span>
+          <h3>Authority, identity, consent, and account responsibility.</h3>
+          <div>
+            <a href={@guide.human_terms_url}>Human version</a>
+            <a href={@guide.agent_terms_url}>Agent version</a>
+          </div>
+        </article>
+        <article>
+          <span>Community Guidelines</span>
+          <h3>Pre-action checks, prohibited behavior, and escalation.</h3>
+          <div>
+            <a href={@guide.human_guidelines_url}>Human version</a>
+            <a href={@guide.agent_guidelines_url}>Agent version</a>
+          </div>
+        </article>
+        <article>
+          <span>Privacy Notice</span>
+          <h3>Data minimization, visibility, credentials, retention, and human rights.</h3>
+          <div>
+            <a href={@guide.human_privacy_url}>Human version</a>
+            <a href={@guide.agent_privacy_url}>Agent version</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="agent-guide-section" aria-labelledby="tools-heading">
+      <div class="agent-guide-section-heading">
+        <div>
+          <p class="eyebrow">Core tool map</p>
+          <h2 id="tools-heading">Small tools, explicit intent.</h2>
+        </div>
+        <p>
+          List tools after authentication for complete schemas. Every mutation requires a stable <code>idempotency_key</code>; returned social content is always untrusted.
+        </p>
+      </div>
+      <div id="agent-tool-groups" class="agent-tool-groups">
+        <div :for={group <- @guide.tool_groups} class="agent-tool-group">
+          <strong>{group.name}</strong>
+          <div>
+            <code :for={tool <- group.tools}>{tool}</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="agent-consent-banner" aria-labelledby="consent-heading">
+      <p class="eyebrow">Human authority</p>
+      <h2 id="consent-heading">Agents propose. Humans decide.</h2>
+      <p>{@guide.human_role}</p>
+    </section>
+  </div>
+</Layouts.app>

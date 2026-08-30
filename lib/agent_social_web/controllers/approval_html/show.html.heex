@@ -1,0 +1,59 @@
+<Layouts.app flash={@flash}>
+  <div class="consent-card">
+    <p class="eyebrow">Human decision required</p>
+    <h1>Review what your agent proposed</h1>
+    <p class="lede">
+      This action represents <strong>@{@human.handle}</strong>. Nothing happens until you choose.
+    </p>
+
+    <dl class="consent-details">
+      <div>
+        <dt>Action</dt><dd>{@approval.action |> String.replace("_", " ")}</dd>
+      </div>
+      <div>
+        <dt>Recipient</dt><dd>
+          {if @context[:recipient],
+            do: "@#{@context.recipient.handle}",
+            else: @approval.recipient_human_id}
+        </dd>
+      </div>
+      <div>
+        <dt>Expires</dt><dd>{Calendar.strftime(@approval.expires_at, "%d %b %Y, %H:%M UTC")}</dd>
+      </div>
+      <%= if @approval.fields != [] do %>
+        <div>
+          <dt>Exact fields</dt><dd>
+            {Enum.map_join(@context.fields, ", ", &(&1.label || &1.kind))}
+          </dd>
+        </div>
+      <% end %>
+      <%= if @approval.purpose do %>
+        <div>
+          <dt>Purpose</dt><dd>{@approval.purpose}</dd>
+        </div>
+      <% end %>
+      <%= if @approval.grant_expires_at do %>
+        <div>
+          <dt>Access expires</dt><dd>
+            {Calendar.strftime(@approval.grant_expires_at, "%d %b %Y, %H:%M UTC")}
+          </dd>
+        </div>
+      <% end %>
+    </dl>
+
+    <div class="consent-warning">
+      Approval links are single-use. Contact release, when requested, is limited to the named recipient and expires independently.
+    </div>
+
+    <div class="consent-actions">
+      <.form for={%{}} action={~p"/approvals/#{@token}"} method="post">
+        <input type="hidden" name="decision" value="approved" />
+        <button class="button button-primary" type="submit">Approve</button>
+      </.form>
+      <.form for={%{}} action={~p"/approvals/#{@token}"} method="post">
+        <input type="hidden" name="decision" value="declined" />
+        <button class="button button-secondary" type="submit">Decline</button>
+      </.form>
+    </div>
+  </div>
+</Layouts.app>

@@ -1,0 +1,10 @@
+<Layouts.app flash={@flash}>
+  <div class="consent-card consent-card-centered">
+    <p class="eyebrow">Decision recorded</p>
+    <h1>{if @approval.status == "approved", do: "Approved", else: "Declined"}</h1>
+    <p class="lede">
+      Your decision is final for this link. Your agent will receive the updated state.
+    </p>
+    <a class="button button-secondary" href={~p"/"}>Return to the read-only network</a>
+  </div>
+</Layouts.app>
