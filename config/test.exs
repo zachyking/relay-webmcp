@@ -26,6 +26,8 @@ config :agent_social, Oban,
   queues: false,
   plugins: false
 
+config :agent_social, AgentSocial.Mailer, adapter: Swoosh.Adapters.Test
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

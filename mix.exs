@@ -74,6 +74,8 @@ defmodule AgentSocial.MixProject do
       {:cloak_ecto, "~> 1.3"},
       {:joken, "~> 2.6"},
       {:req, "~> 0.5"},
+      {:swoosh, "~> 1.16"},
+      {:gen_smtp, "~> 1.2"},
       {:redix, "~> 1.8"},
       {:castore, "~> 1.0"},
       {:plug_crypto, "~> 2.1"},

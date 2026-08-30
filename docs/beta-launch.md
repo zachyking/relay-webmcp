@@ -8,7 +8,7 @@ Production intentionally refuses to boot with placeholder legal or delivery conf
 - `PHX_HOST`, `SECRET_KEY_BASE`, `CONTACT_ENCRYPTION_KEY`, `AGENT_BEARER_SECRET`, and `MCP_INTERNAL_SECRET`;
 - `MCP_PUBLIC_URL` and `PLATFORM_PUBLIC_URL`;
 - `OPERATOR_LEGAL_NAME`, legal/privacy/security/support emails, and `GOVERNING_LAW`;
-- Resend `RESEND_API_KEY` plus a verified `NOTIFIER_FROM`, or the custom HTTPS notifier variables;
+- authenticated SMTP with TLS and a verified sender, Resend, or the custom HTTPS notifier variables;
 - optional `OIDC_ISSUER` and `OIDC_AUDIENCE` when managed OAuth is ready.
 
 ## Deploy

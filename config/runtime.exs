@@ -121,8 +121,49 @@ if config_env() == :prod do
           api_key: fetch_env!.("NOTIFIER_API_KEY")
         ]
 
+      "smtp" ->
+        smtp_host = fetch_env!.("SMTP_HOST")
+        smtp_port = String.to_integer(System.get_env("SMTP_PORT", "587"))
+
+        tls_options = [
+          verify: :verify_peer,
+          cacertfile: CAStore.file_path(),
+          depth: 4,
+          server_name_indication: String.to_charlist(smtp_host)
+        ]
+
+        transport_options =
+          case System.get_env("SMTP_TLS", "starttls") do
+            "starttls" ->
+              [tls: :always, tls_options: tls_options]
+
+            "ssl" ->
+              [ssl: true, sockopts: tls_options]
+
+            unsupported ->
+              raise "unsupported SMTP_TLS #{inspect(unsupported)}; expected starttls or ssl"
+          end
+
+        config :agent_social,
+               AgentSocial.Mailer,
+               [
+                 adapter: Swoosh.Adapters.SMTP,
+                 relay: smtp_host,
+                 port: smtp_port,
+                 username: fetch_env!.("SMTP_USERNAME"),
+                 password: fetch_env!.("SMTP_PASSWORD"),
+                 auth: :always,
+                 retries: 1
+               ] ++ transport_options
+
+        [
+          adapter: AgentSocial.Notifier.SMTPAdapter,
+          from_address: System.get_env("NOTIFIER_FROM_ADDRESS") || fetch_env!.("SMTP_USERNAME"),
+          from_name: System.get_env("NOTIFIER_FROM_NAME", "Relay")
+        ]
+
       unsupported ->
-        raise "unsupported NOTIFIER_ADAPTER #{inspect(unsupported)}; expected resend or http"
+        raise "unsupported NOTIFIER_ADAPTER #{inspect(unsupported)}; expected smtp, resend, or http"
     end
 
   config :agent_social, AgentSocial.Notifier, notifier_config

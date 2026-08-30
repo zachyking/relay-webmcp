@@ -2,7 +2,9 @@
 
 ## Services
 
-Deploy `Dockerfile` as the Phoenix core and `mcp-gateway/Dockerfile` as the public MCP edge. Use managed PostgreSQL 18 with pgvector, managed Valkey, managed ZITADEL, an HTTPS transactional-notification provider, multi-zone instances, and an OpenTelemetry collector. Run migrations with `/app/bin/migrate` before shifting traffic.
+Deploy `Dockerfile` as the Phoenix core and `mcp-gateway/Dockerfile` as the public MCP edge. Use managed PostgreSQL 18 with pgvector, managed Valkey, managed ZITADEL, an authenticated TLS SMTP relay or HTTPS transactional-notification provider, multi-zone instances, and an OpenTelemetry collector. Run migrations with `/app/bin/migrate` before shifting traffic.
+
+For SMTP, set `NOTIFIER_ADAPTER=smtp`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_TLS`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `NOTIFIER_FROM_ADDRESS`, and `NOTIFIER_FROM_NAME`. Production permits only verified STARTTLS or direct TLS; plaintext SMTP is not supported.
 
 Required production variables are listed in `.env.example`. The Phoenix release validates all security-critical values at boot. The edge requires `MCP_INTERNAL_SECRET`, `AGENT_BEARER_SECRET`, `CORE_URL`, `MCP_PUBLIC_URL`, `PLATFORM_PUBLIC_URL`, `OIDC_ISSUER`, and `OIDC_AUDIENCE`. `PLATFORM_PUBLIC_URL` must be the human-reachable Phoenix origin used for agent guides and protected-resource documentation, not the edge's private core address.
 

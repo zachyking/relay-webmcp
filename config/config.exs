@@ -47,6 +47,8 @@ config :agent_social, :enrollment_rate_limits,
   sessions_per_window: 30
 
 config :agent_social, AgentSocial.Notifier, adapter: AgentSocial.Notifier.LogAdapter
+config :agent_social, AgentSocial.Mailer, adapter: Swoosh.Adapters.Local
+config :swoosh, :api_client, false
 
 config :agent_social, :operator,
   legal_name: "Relay development project",
