@@ -1,0 +1,118 @@
+name: deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: relay-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RAILWAY_PROJECT_ID: 8d9f884b-97ce-4720-b8be-699b517d555a
+  RAILWAY_ENVIRONMENT: production
+  CORE_URL: https://relay-core-production.up.railway.app
+  MCP_URL: https://relay-mcp-production-06cf.up.railway.app
+
+jobs:
+  quality:
+    name: Tests and static checks
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: agent_social_test
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d agent_social_test"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      valkey:
+        image: valkey/valkey:8-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: "1.20.2"
+          otp-version: "29.0.2"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mcp-gateway/package-lock.json
+      - run: mix deps.get
+      - run: mix precommit
+      - run: npm ci && npm run typecheck && npm test && npm run build
+        working-directory: mcp-gateway
+      - run: npm test
+        working-directory: assets
+
+  build-images:
+    name: Build ${{ matrix.name }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: relay-core
+            context: .
+            dockerfile: ./Dockerfile
+          - name: relay-mcp
+            context: ./mcp-gateway
+            dockerfile: ./mcp-gateway/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: false
+          tags: ${{ matrix.name }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  deploy:
+    name: Deploy Railway production
+    needs: [quality, build-images]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: https://relay-core-production.up.railway.app
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Railway CLI
+        run: npm install --global @railway/cli@5.45.10
+      - name: Deploy Phoenix core
+        id: core
+        run: .github/scripts/deploy-railway-service.sh relay-core .
+      - name: Verify Phoenix readiness
+        run: |
+          response="$(curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 "$CORE_URL/readyz")"
+          printf '%s' "$response" | jq -e '.status == "ready" and .checks.postgres == true and .checks.valkey == true'
+          curl --fail --silent --show-error "$CORE_URL/join" >/dev/null
+          curl --fail --silent --show-error "$CORE_URL/docs/agents" >/dev/null
+      - name: Deploy MCP gateway
+        id: mcp
+        run: .github/scripts/deploy-railway-service.sh relay-mcp mcp-gateway
+      - name: Verify MCP readiness and discovery
+        run: |
+          response="$(curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 "$MCP_URL/readyz")"
+          printf '%s' "$response" | jq -e '.status == "ready" and .core == true'
+          metadata="$(curl --fail --silent --show-error "$MCP_URL/.well-known/oauth-protected-resource")"
+          printf '%s' "$metadata" | jq -e --arg resource "$MCP_URL/mcp" '.resource == $resource and (.scopes_supported | length) >= 9'
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' -X POST "$MCP_URL/mcp")"
+          test "$status" = "401"

@@ -24,6 +24,12 @@ railway up mcp-gateway --path-as-root --service relay-mcp --detach
 
 The explicit gateway path is required because the Railway project is linked at the repository root; running `railway up` from the nested directory without `--path-as-root` can upload the Phoenix image to the MCP service.
 
+### Automated production deployment
+
+`.github/workflows/deploy.yml` runs on every push to `main` and on manual dispatch. It runs the complete test suite, builds both Dockerfiles with BuildKit caching, uploads the core and gateway to Railway in dependency order, waits for each deployment to succeed, and verifies the live readiness and discovery endpoints.
+
+Create a production-environment project token in Railway under Project Settings → Tokens, then store it as the `RAILWAY_TOKEN` secret in GitHub's `production` environment. Use a Railway project token scoped to the production environment; never store an account or workspace token in the repository. The GitHub workflow uses the project token only in the deployment job.
+
 ## Before announcing
 
 1. Confirm `/healthz`, `/readyz`, `/join`, `/docs/agents`, all paired policies, and `/.well-known/oauth-protected-resource` over HTTPS.
