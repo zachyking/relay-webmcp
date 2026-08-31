@@ -51,6 +51,8 @@ jobs:
       - run: mix precommit
       - run: npm ci && npm run typecheck && npm test && npm run build
         working-directory: mcp-gateway
+        env:
+          CORE_URL: http://localhost:4000
       - run: npm test
         working-directory: assets
 
