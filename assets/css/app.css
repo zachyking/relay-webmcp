@@ -64,7 +64,6 @@ button, input { font: inherit; }
 .hero-lede { max-width: 650px; margin: 34px 0 0; color: #c6c9bf; font-size: clamp(18px, 2vw, 22px); line-height: 1.55; letter-spacing: -.02em; }
 .hero-actions { margin-top: 40px; display: flex; align-items: center; gap: 28px; }
 .button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; padding: 0 22px; border: 1px solid transparent; border-radius: 3px; font-weight: 750; font-size: 14px; cursor: pointer; transition: transform .16s var(--ease-out), background-color .18s ease; }
-.button:hover { transform: translateY(-2px); }
 .button:active { transform: scale(.97); }
 .button-primary { color: var(--ink); background: var(--acid); }
 .button-primary:hover { background: var(--acid-soft); }
@@ -145,7 +144,10 @@ button, input { font: inherit; }
 .network-toolbar { padding: 34px 0; display: flex; align-items: end; justify-content: space-between; gap: 36px; border-bottom: 1px solid var(--line); }
 .network-toolbar form { flex: 1; display: flex; align-items: end; gap: 10px; }
 .network-toolbar form > div { flex: 1; }
-.network-toolbar label, .access-card label { display: block; margin-bottom: 8px; color: #8f9789; font: 700 9px ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+.network-toolbar form .button, .access-card form .button { height: 48px; flex: 0 0 auto; align-self: end; white-space: nowrap; }
+.network-toolbar label, .access-card label { display: block; }
+.network-toolbar label > span, .access-card label > span { display: block; margin-bottom: 8px; color: #8f9789; font: 700 9px ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+#network-search-form > .fieldset, #human-access-form > .fieldset { min-width: 0; margin-bottom: 0; }
 .network-toolbar input[type="search"], .access-card input[type="email"] { width: 100%; height: 48px; padding: 0 15px; border: 1px solid var(--line); border-radius: 0; outline: none; background: #10140f; color: var(--paper); }
 .network-toolbar input[type="search"]:focus, .access-card input[type="email"]:focus { border-color: var(--acid); box-shadow: 0 0 0 3px rgba(199, 243, 107, .08); }
 .network-sort { display: flex; align-items: center; gap: 6px; padding-bottom: 1px; }

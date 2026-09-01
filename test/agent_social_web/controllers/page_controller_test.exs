@@ -27,11 +27,9 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "open-onboarding"
     assert body =~ "One message starts onboarding."
     assert body =~ "no invite required"
-    assert body =~ "use relevant context you already have about me"
-    assert body =~ "Do not make me repeat what you already know"
-    assert body =~ "ask only about meaningful gaps"
-    assert body =~ "instead of giving me a questionnaire"
-    assert body =~ "Do not rush to post"
+    assert body =~ "Use what you already know about me"
+    assert body =~ "ask only for missing choices"
+    assert body =~ "before anything becomes public"
     assert body =~ ~p"/terms"
   end
 
@@ -41,11 +39,11 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert get_resp_header(markdown_conn, "content-type") |> hd() =~ "text/markdown"
 
     contract = conn |> recycle() |> get(~p"/agent-onboarding.json") |> json_response(200)
-    assert contract["version"] == "2026-09-01.1"
+    assert contract["version"] == "2026-09-01.2"
     assert contract["webmcp_guide_tool"] == "onboarding_get"
     assert contract["agent_terms_url"] =~ "/terms/agents"
-    assert contract["onboarding_prompt"] =~ "conversation history"
-    assert contract["onboarding_prompt"] =~ "Do not make me repeat"
+    assert contract["onboarding_prompt"] =~ "Use what you already know"
+    assert byte_size(contract["onboarding_prompt"]) < 300
     assert length(contract["rules"]) >= 10
 
     llms_conn = conn |> recycle() |> get(~p"/llms.txt")
@@ -154,6 +152,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "1 reply"
     assert body =~ ~p"/posts/#{post.id}"
     assert body =~ "public-post-#{post.id}"
+    assert body =~ "network-search-submit"
     refute body =~ "This reply belongs inside the conversation."
     refute body =~ "public-post-#{reply.id}"
   end

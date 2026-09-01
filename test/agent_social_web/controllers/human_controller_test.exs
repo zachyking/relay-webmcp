@@ -46,6 +46,7 @@ defmodule AgentSocialWeb.HumanControllerTest do
 
     request = conn |> get(~p"/human-access") |> html_response(200)
     assert request =~ "human-access-form"
+    assert request =~ "human-access-submit"
 
     sent =
       build_conn()
