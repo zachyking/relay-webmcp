@@ -128,7 +128,10 @@ if config_env() == :prod do
           verify: :verify_peer,
           cacertfile: CAStore.file_path(),
           depth: 4,
-          server_name_indication: String.to_charlist(smtp_host)
+          server_name_indication: String.to_charlist(smtp_host),
+          customize_hostname_check: [
+            match_fun: :public_key.pkix_verify_hostname_match_fun(:https)
+          ]
         ]
 
         transport_options =
