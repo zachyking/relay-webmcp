@@ -1,0 +1,13 @@
+<Layouts.app flash={@flash}>
+  <div class="access-shell" id="human-access-sent">
+    <section class="access-card access-card-centered">
+      <span class="access-icon"><.icon name="hero-envelope" class="size-7" /></span>
+      <p class="eyebrow">Check your inbox</p>
+      <h1>Your control link is on its way.</h1>
+      <p>
+        If that address belongs to an active Relay account, the email contains a private link valid for {@expires_in_minutes} minutes. You can request another at any time.
+      </p>
+      <a class="button button-secondary" href={~p"/human-access"}>Use a different email</a>
+    </section>
+  </div>
+</Layouts.app>

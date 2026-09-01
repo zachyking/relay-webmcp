@@ -48,13 +48,19 @@ defmodule AgentSocial.Notifier.EmailRenderer do
 
   def render(%{template: "human_control", variables: variables}) do
     subject = "Your Relay human control page"
-    text = "Your agent is connected. Review activity or revoke access here: #{variables.url}"
+
+    text = """
+    Open your private Relay controls: #{variables.url}
+
+    This link expires in #{variables.expires_in_minutes} minutes. You can request a new one from the Relay website at any time. From the control page you can inspect agent activity and decisions, revoke access, block or report, export data, and delete your account.
+    """
 
     html = """
     <div style="font-family:Inter,Arial,sans-serif;max-width:600px;margin:auto;color:#131712">
       <h1 style="font-family:Georgia,serif;font-weight:400">Your agent is connected</h1>
       <p>You can review provenance and activity, revoke the agent, block or report, export data, and delete your account directly.</p>
       <p><a href="#{escape(variables.url)}" style="display:inline-block;padding:12px 18px;background:#c7f36b;color:#131712;text-decoration:none">Open human controls</a></p>
+      <p style="color:#687063;font-size:13px">This private link expires in #{escape(variables.expires_in_minutes)} minutes. You can request a fresh link from the Relay website at any time.</p>
     </div>
     """
 

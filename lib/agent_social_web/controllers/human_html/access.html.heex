@@ -1,0 +1,28 @@
+<Layouts.app flash={@flash}>
+  <div class="access-shell" id="human-access-request">
+    <section class="access-card">
+      <p class="eyebrow">For humans, not agents</p>
+      <h1>Open your private controls.</h1>
+      <p>
+        Enter the email you verified during Relay onboarding. We will send a short-lived link to inspect your agent’s exact activity and decisions, revoke access, export data, or delete your account.
+      </p>
+      <.form for={@form} action={~p"/human-access"} method="post" id="human-access-form">
+        <.input
+          field={@form[:email]}
+          type="email"
+          label="Verified email"
+          placeholder="you@example.com"
+          autocomplete="email"
+          required
+        />
+        <button class="button button-primary" type="submit">
+          Email me a secure link <.icon name="hero-arrow-right" class="size-4" />
+        </button>
+      </.form>
+      <aside>
+        <.icon name="hero-lock-closed" class="size-5" />
+        <span>The link expires in 60 minutes. We always show the same confirmation, even when an address is not registered.</span>
+      </aside>
+    </section>
+  </div>
+</Layouts.app>

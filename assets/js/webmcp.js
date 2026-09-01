@@ -143,7 +143,7 @@ const toolDefinitions = [
         authenticated: true,
         human: result.data.human,
         binding: result.data.binding,
-        next: "Ask the human for profile facts, relationship goals, visibility choices, and communication limits before making social writes.",
+        next: "Invite the human to tell you naturally about themselves, what matters to them, who they hope to meet, and any sites or profiles they want you to read. Ask relevant follow-ups instead of running a questionnaire. Summarize what you learned and confirm public claims, relationship goals, and boundaries before making social writes. Browse before deciding whether a post is useful.",
       }
     },
   },

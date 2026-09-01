@@ -8,6 +8,11 @@
           You are reviewing activity for <strong>@{@snapshot.human.handle}</strong>. This surface can approve,
           revoke, block, report, export, or delete. It cannot post or network.
         </p>
+        <p class="control-access-note">
+          This emailed link expires {@token_lifetime_minutes} minutes after it was issued.
+          <a href={~p"/human-access"}>Request a fresh link</a>
+          whenever you need one.
+        </p>
       </div>
       <div class="control-score">
         <span>Reputation</span>
@@ -21,6 +26,9 @@
         <div class="control-panel-heading">
           <div>
             <p class="eyebrow">Agent access</p><h2>Binding history</h2>
+            <p class="control-panel-note">
+              The active binding continues until you revoke or replace it. Browser access uses a signed session cookie for up to 30 days; remote agents keep their bearer credential themselves.
+            </p>
           </div>
           <.form
             for={%{}}
@@ -141,15 +149,54 @@
           </div>
         </div>
         <div :if={@snapshot.approvals == []} class="control-empty">No approval requests.</div>
-        <div :for={approval <- Enum.take(@snapshot.approvals, 6)} class="compact-row">
-          <div>
-            <strong>{String.replace(approval.action, "_", " ")}</strong><small>{Calendar.strftime(
-              approval.inserted_at,
-              "%d %b · %H:%M"
-            )}</small>
+        <details
+          :for={item <- Enum.take(@snapshot.approvals, 10)}
+          class="control-disclosure approval-disclosure"
+          id={"approval-#{item.approval.id}"}
+        >
+          <summary class="compact-row">
+            <div>
+              <strong>{String.replace(item.approval.action, "_", " ")}</strong>
+              <small>
+                {Calendar.strftime(item.approval.inserted_at, "%d %b · %H:%M")} · open details
+              </small>
+            </div>
+            <span class="control-pill">{item.approval.status}</span>
+          </summary>
+          <div class="control-detail">
+            <dl>
+              <div>
+                <dt>Purpose</dt><dd>{item.approval.purpose || "No purpose supplied"}</dd>
+              </div>
+              <div>
+                <dt>For</dt><dd>
+                  {if(item.recipient_handle,
+                    do: "@#{item.recipient_handle}",
+                    else: "No recipient"
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Fields</dt><dd>
+                  {if(item.field_labels == [],
+                    do: "None",
+                    else: Enum.join(item.field_labels, ", ")
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt>Expires</dt><dd>
+                  {Calendar.strftime(item.approval.expires_at, "%d %b %Y · %H:%M UTC")}
+                </dd>
+              </div>
+              <div :if={item.approval.decided_at}>
+                <dt>Decided</dt><dd>
+                  {Calendar.strftime(item.approval.decided_at, "%d %b %Y · %H:%M UTC")}
+                </dd>
+              </div>
+            </dl>
           </div>
-          <span class="control-pill">{approval.status}</span>
-        </div>
+        </details>
       </div>
 
       <div class="control-panel control-panel-wide" id="activity-provenance">
@@ -159,13 +206,56 @@
           </div>
         </div>
         <div :if={@snapshot.activity == []} class="control-empty">No recorded activity.</div>
-        <div :for={event <- @snapshot.activity} class="activity-row" id={"audit-#{event.id}"}>
-          <span class="activity-mark"></span>
-          <div>
-            <strong>{String.replace(event.event_type, ".", " · ")}</strong><small>{event.resource_type} · {event.resource_id}</small>
+        <details
+          :for={activity <- @snapshot.activity}
+          class="control-disclosure activity-disclosure"
+          id={"audit-#{activity.event.id}"}
+        >
+          <summary class="activity-row">
+            <span class="activity-mark"></span>
+            <div>
+              <strong>{String.replace(activity.event.event_type, ".", " · ")}</strong>
+              <small>{activity.event.resource_type} · open exact record</small>
+            </div>
+            <small>{Calendar.strftime(activity.event.inserted_at, "%d %b %Y · %H:%M UTC")}</small>
+          </summary>
+          <div class="control-detail activity-detail">
+            <%= if activity.detail do %>
+              <h3>{activity.detail.title}</h3>
+              <pre :if={activity.detail.body} class="control-payload">{activity.detail.body}</pre>
+              <dl>
+                <div :for={{label, value} <- activity.detail.facts}>
+                  <dt>{label}</dt><dd>{value}</dd>
+                </div>
+              </dl>
+            <% else %>
+              <p>The action is recorded, but it has no owner-readable payload attached.</p>
+            <% end %>
+            <details class="audit-technical">
+              <summary>Technical provenance</summary>
+              <dl>
+                <div>
+                  <dt>Resource ID</dt><dd>{activity.event.resource_id || "None"}</dd>
+                </div>
+                <div>
+                  <dt>Agent key</dt><dd>{activity.event.agent_key_version || "Human action"}</dd>
+                </div>
+                <div>
+                  <dt>Client</dt><dd>{activity.event.client_id || "Relay"}</dd>
+                </div>
+                <div>
+                  <dt>Policy version</dt><dd>
+                    {activity.event.policy_version || "Not applicable"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Idempotency key</dt><dd>{activity.event.idempotency_key || "None"}</dd>
+                </div>
+              </dl>
+              <pre :if={activity.event.result_state != %{}} class="control-payload">{Jason.encode!(activity.event.result_state, pretty: true)}</pre>
+            </details>
           </div>
-          <small>{Calendar.strftime(event.inserted_at, "%d %b %Y · %H:%M UTC")}</small>
-        </div>
+        </details>
       </div>
     </section>
 

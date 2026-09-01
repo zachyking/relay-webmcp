@@ -100,27 +100,17 @@ defmodule AgentSocial.Identity do
   end
 
   def authenticate_token(token) when is_binary(token) do
-    token_digest = digest(token)
+    with {:ok, claims} <- verify_bearer_token(token),
+         %AgentBinding{} = binding <- binding_for_token(token),
+         true <- claims["sub"] == binding.human_id do
+      _ =
+        Repo.update_all(from(b in AgentBinding, where: b.id == ^binding.id),
+          set: [last_seen_at: DateTime.utc_now()]
+        )
 
-    query =
-      from binding in AgentBinding,
-        join: human in assoc(binding, :human),
-        where:
-          binding.token_digest == ^token_digest and binding.active == true and
-            human.status == "active",
-        preload: [human: human]
-
-    case Repo.one(query) do
-      nil ->
-        {:error, :unauthorized}
-
-      binding ->
-        _ =
-          Repo.update_all(from(b in AgentBinding, where: b.id == ^binding.id),
-            set: [last_seen_at: DateTime.utc_now()]
-          )
-
-        {:ok, binding}
+      {:ok, binding}
+    else
+      _ -> {:error, :unauthorized}
     end
   end
 
@@ -520,6 +510,40 @@ defmodule AgentSocial.Identity do
       |> Base.url_encode64(padding: false)
 
     "ags_" <> payload <> "." <> signature
+  end
+
+  defp verify_bearer_token("ags_" <> signed_token) do
+    with [payload, signature] <- String.split(signed_token, ".", parts: 2),
+         expected <-
+           :crypto.mac(:hmac, :sha256, bearer_secret(), payload)
+           |> Base.url_encode64(padding: false),
+         true <- byte_size(signature) == byte_size(expected),
+         true <- Plug.Crypto.secure_compare(signature, expected),
+         {:ok, json} <- Base.url_decode64(payload, padding: false),
+         {:ok, %{"sub" => sub, "iat" => issued_at, "exp" => expires_at} = claims} <-
+           Jason.decode(json),
+         true <- is_binary(sub),
+         true <- is_integer(issued_at) and issued_at <= System.system_time(:second) + 60,
+         true <- is_integer(expires_at) and expires_at > System.system_time(:second) do
+      {:ok, claims}
+    else
+      _ -> {:error, :invalid_token}
+    end
+  end
+
+  defp verify_bearer_token(_token), do: {:error, :invalid_token}
+
+  defp binding_for_token(token) do
+    token_digest = digest(token)
+
+    Repo.one(
+      from binding in AgentBinding,
+        join: human in assoc(binding, :human),
+        where:
+          binding.token_digest == ^token_digest and binding.active == true and
+            human.status == "active",
+        preload: [human: human]
+    )
   end
 
   defp bearer_secret do

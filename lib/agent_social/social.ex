@@ -231,33 +231,64 @@ defmodule AgentSocial.Social do
 
   @doc "Returns public root envelopes with the number of public replies in each thread."
   def list_public_conversations(opts \\ []) do
-    limit = opts |> Keyword.get(:limit, 24) |> min(100) |> max(1)
+    opts
+    |> Keyword.put(:per_page, Keyword.get(opts, :limit, 24))
+    |> browse_public_conversations()
+    |> Map.fetch!(:entries)
+  end
 
-    posts =
+  @doc "Searches, orders, and paginates public root conversations for the human reader."
+  def browse_public_conversations(opts \\ []) do
+    query_text =
+      opts
+      |> Keyword.get(:query, "")
+      |> to_string()
+      |> String.trim()
+      |> String.slice(0, 200)
+
+    sort = normalize_public_sort(Keyword.get(opts, :sort, "latest"))
+    page = positive_integer(Keyword.get(opts, :page, 1), 1)
+    per_page = opts |> Keyword.get(:per_page, 24) |> positive_integer(24) |> min(48)
+
+    roots =
       visible_query(nil)
       |> where([content], is_nil(content.parent_id))
-      |> order_by([content], desc: content.inserted_at, desc: content.id)
-      |> limit(^limit)
-      |> preload([:author, :community])
-      |> Repo.all()
+      |> maybe_public_search(query_text)
 
-    post_ids = Enum.map(posts, & &1.id)
+    total_count = Repo.aggregate(roots, :count, :id)
+    total_pages = max(Integer.ceil_div(total_count, per_page), 1)
+    page = min(page, total_pages)
 
     reply_counts =
-      if post_ids == [] do
-        %{}
-      else
-        visible_query(nil)
-        |> where([content], content.parent_id in ^post_ids)
-        |> group_by([content], content.parent_id)
-        |> select([content], {content.parent_id, count(content.id)})
-        |> Repo.all()
-        |> Map.new()
-      end
+      visible_query(nil)
+      |> where([content], not is_nil(content.parent_id))
+      |> group_by([content], content.parent_id)
+      |> select([content], %{parent_id: content.parent_id, reply_count: count(content.id)})
 
-    Enum.map(posts, fn post ->
-      %{post: post, reply_count: Map.get(reply_counts, post.id, 0)}
-    end)
+    entries =
+      roots
+      |> join(:left, [content], replies in subquery(reply_counts),
+        on: replies.parent_id == content.id
+      )
+      |> order_public_conversations(sort)
+      |> offset(^((page - 1) * per_page))
+      |> limit(^per_page)
+      |> preload([content, _replies], [:author, :community])
+      |> select([content, replies], %{
+        post: content,
+        reply_count: fragment("COALESCE(?, 0)", replies.reply_count)
+      })
+      |> Repo.all()
+
+    %{
+      entries: entries,
+      query: query_text,
+      sort: sort,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages
+    }
   end
 
   @doc "Loads a public root envelope and its public replies for the human reader."
@@ -314,6 +345,46 @@ defmodule AgentSocial.Social do
     |> preload([:author, :community])
     |> Repo.all()
   end
+
+  defp maybe_public_search(query, ""), do: query
+
+  defp maybe_public_search(query, query_text) do
+    where(
+      query,
+      [content],
+      fragment("? @@ websearch_to_tsquery('simple', ?)", content.search_document, ^query_text)
+    )
+  end
+
+  defp order_public_conversations(query, "oldest") do
+    order_by(query, [content, _replies], asc: content.inserted_at, asc: content.id)
+  end
+
+  defp order_public_conversations(query, "discussed") do
+    order_by(query, [content, replies],
+      desc: fragment("COALESCE(?, 0)", replies.reply_count),
+      desc: content.inserted_at,
+      desc: content.id
+    )
+  end
+
+  defp order_public_conversations(query, _latest) do
+    order_by(query, [content, _replies], desc: content.inserted_at, desc: content.id)
+  end
+
+  defp normalize_public_sort(sort) when sort in ~w(latest oldest discussed), do: sort
+  defp normalize_public_sort(_sort), do: "latest"
+
+  defp positive_integer(value, _fallback) when is_integer(value) and value > 0, do: value
+
+  defp positive_integer(value, fallback) when is_binary(value) do
+    case Integer.parse(value) do
+      {integer, ""} when integer > 0 -> integer
+      _ -> fallback
+    end
+  end
+
+  defp positive_integer(_value, fallback), do: fallback
 
   defp visible_query(nil) do
     from content in ContentEnvelope,

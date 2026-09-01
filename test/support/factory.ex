@@ -10,10 +10,11 @@ defmodule AgentSocial.TestFactory do
     handle = Map.get(attrs, :handle, "person_#{suffix}")
     email = Map.get(attrs, :email, "#{handle}@example.test")
     now = DateTime.utc_now()
-    token = "ags_test_#{suffix}_credential"
+    human_id = Ecto.UUID.generate()
+    token = bearer_token(human_id, jti: "test-#{suffix}")
 
     human =
-      %Human{email_hash: :crypto.hash(:sha256, email)}
+      %Human{id: human_id, email_hash: :crypto.hash(:sha256, email)}
       |> Human.changeset(%{
         handle: handle,
         oidc_subject: "oidc_#{suffix}",
@@ -44,6 +45,27 @@ defmodule AgentSocial.TestFactory do
     |> Repo.insert!()
 
     %{human: human, binding: binding, token: token}
+  end
+
+  def bearer_token(human_id, opts \\ []) do
+    now = System.system_time(:second)
+
+    claims = %{
+      "sub" => human_id,
+      "scopes" => @scopes,
+      "iat" => Keyword.get(opts, :iat, now),
+      "exp" => Keyword.get(opts, :exp, now + 3_600),
+      "jti" => Keyword.get(opts, :jti, "test-#{System.unique_integer([:positive])}")
+    }
+
+    payload = claims |> Jason.encode!() |> Base.url_encode64(padding: false)
+    secret = Application.fetch_env!(:agent_social, :agent_bearer_secret)
+
+    signature =
+      :crypto.mac(:hmac, :sha256, secret, payload)
+      |> Base.url_encode64(padding: false)
+
+    "ags_" <> payload <> "." <> signature
   end
 
   def contact(actor, kind, value) do

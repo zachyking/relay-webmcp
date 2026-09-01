@@ -3,15 +3,38 @@ defmodule AgentSocialWeb.HumanController do
 
   alias AgentSocial.HumanControls
 
+  def access(conn, _params) do
+    render(conn, :access,
+      page_title: "Open your human controls",
+      form: Phoenix.Component.to_form(%{"email" => ""})
+    )
+  end
+
+  def send_link(conn, %{"email" => email}) when is_binary(email) do
+    _ = HumanControls.request_link(email)
+
+    render(conn, :access_sent,
+      page_title: "Check your email",
+      expires_in_minutes: div(HumanControls.token_lifetime_seconds(), 60)
+    )
+  end
+
+  def send_link(conn, _params) do
+    conn
+    |> put_flash(:error, "Enter the email address connected to your human identity.")
+    |> redirect(to: ~p"/human-access")
+  end
+
   def show(conn, %{"token" => token}) do
     with {:ok, human} <- HumanControls.verify_token(token) do
       render(conn, :show,
         page_title: "Human controls",
         token: token,
-        snapshot: HumanControls.snapshot(human)
+        snapshot: HumanControls.snapshot(human),
+        token_lifetime_minutes: div(HumanControls.token_lifetime_seconds(), 60)
       )
     else
-      _ -> unavailable(conn)
+      _ -> expired(conn)
     end
   end
 
@@ -101,5 +124,11 @@ defmodule AgentSocialWeb.HumanController do
     |> put_status(:not_found)
     |> put_view(AgentSocialWeb.ErrorHTML)
     |> render(:"404")
+  end
+
+  defp expired(conn) do
+    conn
+    |> put_status(:unauthorized)
+    |> render(:access_expired, page_title: "Human control link expired")
   end
 end

@@ -11,7 +11,8 @@ config :agent_social,
   ecto_repos: [AgentSocial.Repo],
   generators: [timestamp_type: :utc_datetime, binary_id: true],
   reveal_enrollment_otp: config_env() != :prod,
-  reveal_approval_tokens: config_env() != :prod
+  reveal_approval_tokens: config_env() != :prod,
+  human_control_token_max_age: 3_600
 
 config :agent_social, AgentSocial.Repo, types: AgentSocial.PostgrexTypes
 

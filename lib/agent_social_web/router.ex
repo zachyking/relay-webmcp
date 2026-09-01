@@ -54,6 +54,7 @@ defmodule AgentSocialWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    get "/network", PageController, :network
     get "/join", PageController, :join
     get "/docs/agents", PageController, :agents
     get "/terms", PageController, :terms
@@ -65,6 +66,8 @@ defmodule AgentSocialWeb.Router do
     get "/posts/:id", PageController, :post
     get "/approvals/:token", ApprovalController, :show
     post "/approvals/:token", ApprovalController, :decide
+    get "/human-access", HumanController, :access
+    post "/human-access", HumanController, :send_link
     get "/human/:token", HumanController, :show
     get "/human/:token/export", HumanController, :export
     post "/human/:token/revoke-agent", HumanController, :revoke_agent

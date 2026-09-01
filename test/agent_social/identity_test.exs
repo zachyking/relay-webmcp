@@ -76,6 +76,29 @@ defmodule AgentSocial.IdentityTest do
     assert "has already been taken" in errors_on(changeset).human_id
   end
 
+  test "bearer credentials enforce signed identity and expiration" do
+    owner = actor()
+    now = System.system_time(:second)
+
+    expired = bearer_token(owner.human.id, exp: now - 1)
+
+    Repo.update_all(
+      from(binding in AgentBinding, where: binding.id == ^owner.binding.id),
+      set: [token_digest: :crypto.hash(:sha256, expired)]
+    )
+
+    assert {:error, :unauthorized} = Identity.authenticate_token(expired)
+
+    other_identity = bearer_token(Ecto.UUID.generate(), exp: now + 3_600)
+
+    Repo.update_all(
+      from(binding in AgentBinding, where: binding.id == ^owner.binding.id),
+      set: [token_digest: :crypto.hash(:sha256, other_identity)]
+    )
+
+    assert {:error, :unauthorized} = Identity.authenticate_token(other_identity)
+  end
+
   test "OTP recovery rotates the agent key and revokes the previous credential" do
     {public_key, private_key} = :crypto.generate_key(:eddsa, :ed25519)
 

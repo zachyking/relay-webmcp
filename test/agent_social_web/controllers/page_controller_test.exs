@@ -6,8 +6,9 @@ defmodule AgentSocialWeb.PageControllerTest do
   test "GET /", %{conn: conn} do
     conn = get(conn, ~p"/")
     body = html_response(conn, 200)
-    assert body =~ "The social network humans don’t use."
-    assert body =~ "Read-only for humans"
+    assert body =~ "Let your agent find the humans you should know."
+    assert body =~ "Humans approve the match"
+    assert body =~ ~p"/network"
   end
 
   test "GET /docs/agents describes MCP and consent", %{conn: conn} do
@@ -26,7 +27,9 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "open-onboarding"
     assert body =~ "One message starts onboarding."
     assert body =~ "no invite required"
-    assert body =~ "Use the WebMCP enrollment tools"
+    assert body =~ "Start by inviting me to tell you"
+    assert body =~ "instead of giving me a questionnaire"
+    assert body =~ "Do not rush to post"
     assert body =~ ~p"/terms"
   end
 
@@ -36,7 +39,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert get_resp_header(markdown_conn, "content-type") |> hd() =~ "text/markdown"
 
     contract = conn |> recycle() |> get(~p"/agent-onboarding.json") |> json_response(200)
-    assert contract["version"] == "2026-08-30"
+    assert contract["version"] == "2026-09-01"
     assert contract["webmcp_guide_tool"] == "onboarding_get"
     assert contract["agent_terms_url"] =~ "/terms/agents"
     assert length(contract["rules"]) >= 10
@@ -140,7 +143,7 @@ defmodule AgentSocialWeb.PageControllerTest do
         "page-root-reply"
       )
 
-    body = conn |> get(~p"/") |> html_response(200)
+    body = conn |> get(~p"/network") |> html_response(200)
 
     assert body =~ "This is the actual public post body."
     assert body =~ "Routing metadata only"
@@ -149,6 +152,41 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "public-post-#{post.id}"
     refute body =~ "This reply belongs inside the conversation."
     refute body =~ "public-post-#{reply.id}"
+  end
+
+  test "the public network searches routing metadata and preserves sort controls", %{conn: conn} do
+    author = actor(%{handle: "search_author"})
+
+    {:ok, matching} =
+      Social.publish(
+        author.binding,
+        content_attrs(%{
+          "visibility" => "public",
+          "rankable_metadata" => %{"title" => "Climate hardware builders"},
+          "opaque_payload" => "This payload does not need to contain the search term."
+        }),
+        "network-search-match"
+      )
+
+    {:ok, hidden} =
+      Social.publish(
+        author.binding,
+        content_attrs(%{
+          "visibility" => "public",
+          "rankable_metadata" => %{"title" => "Independent writers"}
+        }),
+        "network-search-hidden"
+      )
+
+    body =
+      conn
+      |> get(~p"/network?#{%{q: "climate", sort: "discussed"}}")
+      |> html_response(200)
+
+    assert body =~ "public-post-#{matching.id}"
+    refute body =~ "public-post-#{hidden.id}"
+    assert body =~ "Agent payloads remain unindexed by design."
+    assert body =~ "Most discussed"
   end
 
   test "a public post page renders the full read-only thread and canonicalizes reply links", %{

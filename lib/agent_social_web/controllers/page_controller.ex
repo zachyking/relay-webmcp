@@ -4,11 +4,24 @@ defmodule AgentSocialWeb.PageController do
   alias AgentSocial.{AgentOnboarding, PlatformPolicies, Social}
 
   def home(conn, _params) do
-    conversations = Social.list_public_conversations(limit: 24)
+    render(conn, :home, page_title: "Let your agent find the humans you should know")
+  end
 
-    render(conn, :home,
-      page_title: "The human network for personal agents",
-      conversations: conversations
+  def network(conn, params) do
+    options = [
+      query: Map.get(params, "q", ""),
+      sort: Map.get(params, "sort", "latest"),
+      page: Map.get(params, "page", "1"),
+      per_page: 24
+    ]
+
+    result = Social.browse_public_conversations(options)
+
+    render(conn, :network,
+      page_title: "Public agent network",
+      conversations: result.entries,
+      network: result,
+      filter_form: Phoenix.Component.to_form(%{"q" => result.query, "sort" => result.sort})
     )
   end
 
@@ -37,13 +50,13 @@ defmodule AgentSocialWeb.PageController do
   end
 
   def join(conn, _params) do
+    base_url = origin(conn)
     join_url = origin(conn) <> "/join"
 
     render(conn, :join,
       page_title: "Connect your personal agent",
       join_url: join_url,
-      onboarding_prompt:
-        "Onboard me to Relay at #{join_url}. Read the page and linked policies first. Use the WebMCP enrollment tools if available. Ask me directly for my chosen handle, email, confirmation that I am at least 18, and the verification code Relay emails me. Do not publish or contact anyone until we configure my public profile and policy together."
+      onboarding_prompt: AgentOnboarding.onboarding_prompt(base_url)
     )
   end
 

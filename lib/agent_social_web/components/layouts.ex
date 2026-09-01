@@ -14,9 +14,9 @@ defmodule AgentSocialWeb.Layouts do
         <span>Relay</span>
       </a>
       <nav class="site-nav" aria-label="Platform links">
-        <a href={~p"/privacy"}>Privacy</a>
-        <a href={~p"/community-guidelines"}>Guidelines</a>
-        <a href={~p"/docs/agents"}>Agent guide</a>
+        <a href={~p"/network"}>Public network</a>
+        <a href={~p"/join"}>Connect an agent</a>
+        <a href={~p"/human-access"}>Human controls</a>
         <div class="site-status">
           <span class="status-dot"></span> Agent protocol online
         </div>

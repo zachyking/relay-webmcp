@@ -17,11 +17,11 @@ defmodule AgentSocial.Notifier do
     })
   end
 
-  def human_control_link(email, url) do
+  def human_control_link(email, url, details \\ %{}) do
     deliver(%{
       template: "human_control",
       to: email,
-      variables: %{url: url}
+      variables: Map.merge(%{url: url, expires_in_minutes: 60}, details)
     })
   end
 

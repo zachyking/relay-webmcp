@@ -2,20 +2,32 @@ defmodule AgentSocial.HumanControls do
   @moduledoc "Direct human safety, consent, export, revocation, and deletion controls."
 
   import Ecto.Query
-  alias AgentSocial.Connections.{Connection, ContactGrant, HumanApproval, Message, Thread}
+
+  alias AgentSocial.Connections.{
+    Connection,
+    ContactGrant,
+    HumanApproval,
+    IntroductionProposal,
+    Message,
+    Thread
+  }
+
   alias AgentSocial.Identity.{AgentBinding, ContactField, Human, Policy, ProfileClaim}
   alias AgentSocial.Operations.{AuditEvent, InboxEvent}
   alias AgentSocial.Safety.{Block, Report}
   alias AgentSocial.Social.ContentEnvelope
-  alias AgentSocial.{Identity, Repo, Safety}
+  alias AgentSocial.{Identity, RateLimiter, Repo, Safety}
 
   @token_salt "human-control-v1"
 
-  def token_for(%Human{id: id}),
-    do: Phoenix.Token.sign(AgentSocialWeb.Endpoint, @token_salt, id)
+  def token_for(%Human{id: id}, opts \\ []),
+    do: Phoenix.Token.sign(AgentSocialWeb.Endpoint, @token_salt, id, opts)
+
+  def token_lifetime_seconds,
+    do: Application.get_env(:agent_social, :human_control_token_max_age, 3_600)
 
   def verify_token(token) do
-    max_age = Application.get_env(:agent_social, :human_control_token_max_age, 7 * 86_400)
+    max_age = token_lifetime_seconds()
 
     with {:ok, human_id} <-
            Phoenix.Token.verify(AgentSocialWeb.Endpoint, @token_salt, token, max_age: max_age),
@@ -24,6 +36,36 @@ defmodule AgentSocial.HumanControls do
     else
       nil -> {:error, :not_found}
       _ -> {:error, :invalid_or_expired_token}
+    end
+  end
+
+  def request_link(email) when is_binary(email) do
+    normalized_email = email |> String.trim() |> String.downcase()
+    email_hash = :crypto.hash(:sha256, normalized_email)
+
+    case RateLimiter.check(
+           "human-control:email:#{Base.url_encode64(email_hash, padding: false)}",
+           3,
+           3_600
+         ) do
+      :ok -> deliver_control_link(email_hash)
+      {:error, :rate_limited, _retry_after} -> :ok
+    end
+  end
+
+  def request_link(_email), do: :ok
+
+  defp deliver_control_link(email_hash) do
+    case Repo.get_by(Human, email_hash: email_hash, status: "active") do
+      %Human{} = human ->
+        url = AgentSocialWeb.Endpoint.url() <> "/human/" <> token_for(human)
+
+        AgentSocial.Notifier.human_control_link(human.email, url, %{
+          expires_in_minutes: div(token_lifetime_seconds(), 60)
+        })
+
+      nil ->
+        :ok
     end
   end
 
@@ -60,6 +102,22 @@ defmodule AgentSocial.HumanControls do
           }
       )
 
+    approvals =
+      Repo.all(
+        from approval in HumanApproval,
+          where: approval.human_id == ^human.id,
+          order_by: [desc: approval.inserted_at],
+          limit: 25
+      )
+
+    activity =
+      Repo.all(
+        from event in AuditEvent,
+          where: event.actor_human_id == ^human.id,
+          order_by: [desc: event.inserted_at],
+          limit: 50
+      )
+
     %{
       human: human,
       bindings: bindings,
@@ -70,20 +128,8 @@ defmodule AgentSocial.HumanControls do
             where: grant.owner_human_id == ^human.id and is_nil(grant.revoked_at),
             order_by: [desc: grant.inserted_at]
         ),
-      approvals:
-        Repo.all(
-          from approval in HumanApproval,
-            where: approval.human_id == ^human.id,
-            order_by: [desc: approval.inserted_at],
-            limit: 25
-        ),
-      activity:
-        Repo.all(
-          from event in AuditEvent,
-            where: event.actor_human_id == ^human.id,
-            order_by: [desc: event.inserted_at],
-            limit: 50
-        ),
+      approvals: enrich_approvals(approvals, human),
+      activity: enrich_activity(activity, human),
       blocks:
         Repo.all(
           from block in Block,
@@ -295,6 +341,172 @@ defmodule AgentSocial.HumanControls do
   end
 
   def delete_account(%Human{} = human), do: Identity.delete_human(human.id)
+
+  defp enrich_approvals(approvals, human) do
+    recipient_ids = approvals |> Enum.map(& &1.recipient_human_id) |> Enum.reject(&is_nil/1)
+
+    recipients =
+      Repo.all(from recipient in Human, where: recipient.id in ^recipient_ids)
+      |> Map.new(&{&1.id, &1.handle})
+
+    field_ids = approvals |> Enum.flat_map(& &1.fields) |> Enum.uniq()
+
+    fields =
+      Repo.all(
+        from field in ContactField,
+          where: field.id in ^field_ids and field.human_id == ^human.id
+      )
+      |> Map.new(&{&1.id, &1.kind})
+
+    Enum.map(approvals, fn approval ->
+      %{
+        approval: approval,
+        recipient_handle: Map.get(recipients, approval.recipient_human_id),
+        field_labels: Enum.map(approval.fields, &Map.get(fields, &1, "unknown field"))
+      }
+    end)
+  end
+
+  defp enrich_activity(events, human) do
+    content =
+      owned_records(ContentEnvelope, event_ids(events, "content"), human.id, :author_human_id)
+
+    messages = owned_records(Message, event_ids(events, "message"), human.id, :sender_human_id)
+    claims = owned_records(ProfileClaim, event_ids(events, "profile_claim"), human.id, :human_id)
+
+    contacts =
+      owned_records(ContactField, event_ids(events, "contact_field"), human.id, :human_id)
+
+    policies = owned_records(Policy, event_ids(events, "policy"), human.id, :human_id)
+
+    threads =
+      Repo.all(
+        from thread in Thread,
+          where:
+            thread.id in ^event_ids(events, "thread") and
+              (thread.initiator_human_id == ^human.id or thread.recipient_human_id == ^human.id)
+      )
+      |> Map.new(&{&1.id, &1})
+
+    introductions =
+      Repo.all(
+        from proposal in IntroductionProposal,
+          where:
+            proposal.id in ^event_ids(events, "introduction") and
+              (proposal.proposer_human_id == ^human.id or proposal.recipient_human_id == ^human.id)
+      )
+      |> Map.new(&{&1.id, &1})
+
+    resources = %{
+      "content" => content,
+      "message" => messages,
+      "profile_claim" => claims,
+      "contact_field" => contacts,
+      "policy" => policies,
+      "thread" => threads,
+      "introduction" => introductions
+    }
+
+    Enum.map(events, fn event ->
+      record = resources |> Map.get(event.resource_type, %{}) |> Map.get(event.resource_id)
+      %{event: event, detail: resource_detail(event.resource_type, record)}
+    end)
+  end
+
+  defp event_ids(events, type) do
+    events
+    |> Enum.filter(&(&1.resource_type == type))
+    |> Enum.map(& &1.resource_id)
+    |> Enum.reject(&is_nil/1)
+  end
+
+  defp owned_records(schema, ids, human_id, owner_field) do
+    Repo.all(
+      from record in schema,
+        where: record.id in ^ids and field(record, ^owner_field) == ^human_id
+    )
+    |> Map.new(&{&1.id, &1})
+  end
+
+  defp resource_detail("content", %ContentEnvelope{} = content) do
+    %{
+      title: "#{humanize(content.kind)} · #{humanize(content.visibility)}",
+      body: content.opaque_payload,
+      facts: [
+        {"Format", "#{content.format} · #{content.encoding}"},
+        {"Relationship modes", Enum.join(content.relationship_modes, ", ")},
+        {"Topics", Enum.join(content.topic_ids, ", ")}
+      ]
+    }
+  end
+
+  defp resource_detail("message", %Message{} = message) do
+    %{
+      title: "Private agent message",
+      body: message.opaque_payload,
+      facts: [
+        {"Thread", message.thread_id},
+        {"Format", "#{message.format} · #{message.encoding}"}
+      ]
+    }
+  end
+
+  defp resource_detail("profile_claim", %ProfileClaim{} = claim) do
+    %{
+      title: "Profile claim · #{claim.key}",
+      body: Jason.encode!(claim.value, pretty: true),
+      facts: [{"Visibility", claim.visibility}]
+    }
+  end
+
+  defp resource_detail("contact_field", %ContactField{} = field) do
+    %{
+      title: "Private contact field · #{field.kind}",
+      body: field.value,
+      facts: [{"Label", field.label || "None"}]
+    }
+  end
+
+  defp resource_detail("policy", %Policy{} = policy) do
+    %{
+      title: "Agent policy · version #{policy.version}",
+      body: nil,
+      facts: [
+        {"Relationship modes", Enum.join(policy.relationship_modes, ", ")},
+        {"Inbound threads", yes_no(policy.allow_inbound_threads)},
+        {"Daily post limit", policy.daily_post_limit},
+        {"Daily message limit", policy.daily_message_limit}
+      ]
+    }
+  end
+
+  defp resource_detail("thread", %Thread{} = thread) do
+    %{
+      title: "Agent-to-agent thread",
+      body: nil,
+      facts: [
+        {"Relationship mode", humanize(thread.relationship_mode)},
+        {"Status", humanize(thread.status)},
+        {"Initiator human ID", thread.initiator_human_id},
+        {"Recipient human ID", thread.recipient_human_id}
+      ]
+    }
+  end
+
+  defp resource_detail("introduction", %IntroductionProposal{} = proposal) do
+    %{
+      title: "Introduction proposal",
+      body: proposal.purpose,
+      facts: [{"Status", humanize(proposal.status)}, {"Thread", proposal.thread_id}]
+    }
+  end
+
+  defp resource_detail(_type, _record), do: nil
+
+  defp humanize(value) when is_binary(value), do: String.replace(value, "_", " ")
+  defp humanize(value), do: to_string(value)
+  defp yes_no(true), do: "Allowed"
+  defp yes_no(false), do: "Not allowed"
 
   defp audit(human_id, event_type, resource_type, resource_id) do
     AgentSocial.Operations.audit_changeset(%{

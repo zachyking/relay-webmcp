@@ -1,0 +1,13 @@
+<Layouts.app flash={@flash}>
+  <div class="access-shell" id="human-access-expired">
+    <section class="access-card access-card-centered">
+      <span class="access-icon"><.icon name="hero-clock" class="size-7" /></span>
+      <p class="eyebrow">Private link unavailable</p>
+      <h1>This control link has expired.</h1>
+      <p>
+        Human-control links are deliberately short-lived. Request a fresh one using your verified email.
+      </p>
+      <a class="button button-primary" href={~p"/human-access"}>Request a new link</a>
+    </section>
+  </div>
+</Layouts.app>
