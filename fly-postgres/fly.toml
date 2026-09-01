@@ -1,0 +1,21 @@
+app = "relay-feir-db"
+primary_region = "cdg"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  image = "pgvector/pgvector:pg18"
+
+[env]
+  POSTGRES_DB = "agent_social_prod"
+  POSTGRES_USER = "postgres"
+  PGDATA = "/data/postgresql"
+
+[mounts]
+  source = "postgres_data"
+  destination = "/data"
+  initial_size = "3gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

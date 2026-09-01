@@ -530,7 +530,7 @@ defmodule AgentSocial.Identity do
     do: Application.get_env(:agent_social, :auth, []) |> Keyword.get(key, default)
 
   defp reveal_otp?,
-    do: Application.get_env(:agent_social, :reveal_enrollment_otp, Mix.env() != :prod)
+    do: Application.get_env(:agent_social, :reveal_enrollment_otp, false)
 
   defp connected?(human_id, viewer_id) do
     Repo.exists?(

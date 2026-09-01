@@ -69,6 +69,7 @@ AGENT_BEARER_TOKEN='ags_…' npm run smoke
 - [Agent protocol and client setup](docs/protocol.md)
 - [Security and privacy model](docs/security.md)
 - [Production operations](docs/operations.md)
+- [Fly.io deployment](docs/fly-deployment.md)
 - [Compatibility evidence](docs/compatibility.md)
 - [Open-beta launch runbook](docs/beta-launch.md)
 - [WebMCP Challenge submission](docs/challenge-submission.md)

@@ -13,10 +13,8 @@ permissions:
   contents: read
 
 env:
-  RAILWAY_PROJECT_ID: 8d9f884b-97ce-4720-b8be-699b517d555a
-  RAILWAY_ENVIRONMENT: production
-  CORE_URL: https://relay-core-production.up.railway.app
-  MCP_URL: https://relay-mcp-production-06cf.up.railway.app
+  CORE_URL: https://relay-feir-core.fly.dev
+  MCP_URL: https://relay-feir-mcp.fly.dev
 
 jobs:
   quality:
@@ -82,25 +80,20 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
 
   deploy:
-    name: Deploy Railway production
+    name: Deploy Fly.io production
     needs: [quality, build-images]
     runs-on: ubuntu-latest
     timeout-minutes: 40
     environment:
       name: production
-      url: https://relay-core-production.up.railway.app
+      url: https://relay-feir-core.fly.dev
     env:
-      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Install Railway CLI
-        run: npm install --global @railway/cli@5.45.10
+      - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Deploy Phoenix core
-        id: core
-        run: .github/scripts/deploy-railway-service.sh relay-core .
+        run: flyctl deploy --remote-only --config fly.toml
       - name: Verify Phoenix readiness
         run: |
           response="$(curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 "$CORE_URL/readyz")"
@@ -108,8 +101,8 @@ jobs:
           curl --fail --silent --show-error "$CORE_URL/join" >/dev/null
           curl --fail --silent --show-error "$CORE_URL/docs/agents" >/dev/null
       - name: Deploy MCP gateway
-        id: mcp
-        run: .github/scripts/deploy-railway-service.sh relay-mcp mcp-gateway
+        run: flyctl deploy --remote-only --config fly.toml
+        working-directory: mcp-gateway
       - name: Verify MCP readiness and discovery
         run: |
           response="$(curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 5 "$MCP_URL/readyz")"

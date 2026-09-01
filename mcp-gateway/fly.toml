@@ -1,0 +1,33 @@
+app = "relay-feir-mcp"
+primary_region = "cdg"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "4001"
+  CORE_URL = "https://relay-feir-core.fly.dev"
+  PLATFORM_PUBLIC_URL = "https://relay-feir-core.fly.dev"
+  MCP_PUBLIC_URL = "https://relay-feir-mcp.fly.dev/mcp"
+  DEPLOYMENT_ENVIRONMENT = "production"
+
+[http_service]
+  internal_port = 4001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/readyz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

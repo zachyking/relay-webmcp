@@ -645,5 +645,5 @@ defmodule AgentSocial.Connections do
   defp digest(value), do: :crypto.hash(:sha256, value)
 
   defp reveal_approvals?,
-    do: Application.get_env(:agent_social, :reveal_approval_tokens, Mix.env() != :prod)
+    do: Application.get_env(:agent_social, :reveal_approval_tokens, false)
 end

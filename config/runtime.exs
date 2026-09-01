@@ -56,7 +56,7 @@ if config_env() == :prod do
   agent_bearer_secret = fetch_env!.("AGENT_BEARER_SECRET")
   mcp_internal_secret = fetch_env!.("MCP_INTERNAL_SECRET")
   mcp_public_url = fetch_env!.("MCP_PUBLIC_URL")
-  valkey_url = fetch_env!.("VALKEY_URL")
+  valkey_url = System.get_env("VALKEY_URL")
   oidc_issuer = System.get_env("OIDC_ISSUER")
   oidc_audience = System.get_env("OIDC_AUDIENCE") || mcp_public_url
   contact_key_encoded = fetch_env!.("CONTACT_ENCRYPTION_KEY")
@@ -77,7 +77,10 @@ if config_env() == :prod do
   config :agent_social, agent_bearer_secret: agent_bearer_secret
   config :agent_social, :mcp_internal_secret, mcp_internal_secret
   config :agent_social, :mcp_public_url, mcp_public_url
-  config :agent_social, :valkey_url, valkey_url
+
+  if is_binary(valkey_url) and valkey_url != "" do
+    config :agent_social, :valkey_url, valkey_url
+  end
 
   config :agent_social, :auth,
     issuer: oidc_issuer,

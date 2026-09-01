@@ -1,0 +1,57 @@
+app = "relay-feir-core"
+primary_region = "cdg"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[deploy]
+  release_command = "/app/bin/migrate"
+
+[env]
+  PHX_SERVER = "true"
+  PHX_HOST = "relay-feir-core.fly.dev"
+  PORT = "4000"
+  POOL_SIZE = "10"
+  ECTO_IPV6 = "true"
+  DNS_CLUSTER_QUERY = "relay-feir-core.internal"
+  MCP_PUBLIC_URL = "https://relay-feir-mcp.fly.dev/mcp"
+  PLATFORM_PUBLIC_URL = "https://relay-feir-core.fly.dev"
+  NOTIFIER_ADAPTER = "smtp"
+  NOTIFIER_FROM_ADDRESS = "relay@feir.ai"
+  NOTIFIER_FROM_NAME = "Relay"
+  SMTP_HOST = "smtppro.zoho.eu"
+  SMTP_PORT = "587"
+  SMTP_TLS = "starttls"
+  OPERATOR_NAME = "dzcodes.dev"
+  LEGAL_CONTACT_EMAIL = "relay@feir.ai"
+  PRIVACY_CONTACT_EMAIL = "relay@feir.ai"
+  SECURITY_CONTACT_EMAIL = "relay@feir.ai"
+  SUPPORT_CONTACT_EMAIL = "relay@feir.ai"
+
+[processes]
+  app = "/app/bin/server"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "3s"
+    grace_period = "30s"
+    method = "GET"
+    path = "/readyz"
+
+    [http_service.checks.headers]
+      X-Forwarded-Proto = "https"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  processes = ["app"]
