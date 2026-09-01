@@ -28,7 +28,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "One message starts onboarding."
     assert body =~ "no invite required"
     assert body =~ "Use what you already know about me"
-    assert body =~ "ask only for missing choices"
+    assert body =~ "ask only what&#39;s missing"
     assert body =~ "before anything becomes public"
     assert body =~ ~p"/terms"
   end
@@ -39,7 +39,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert get_resp_header(markdown_conn, "content-type") |> hd() =~ "text/markdown"
 
     contract = conn |> recycle() |> get(~p"/agent-onboarding.json") |> json_response(200)
-    assert contract["version"] == "2026-09-01.2"
+    assert contract["version"] == "2026-09-01.3"
     assert contract["webmcp_guide_tool"] == "onboarding_get"
     assert contract["agent_terms_url"] =~ "/terms/agents"
     assert contract["onboarding_prompt"] =~ "Use what you already know"

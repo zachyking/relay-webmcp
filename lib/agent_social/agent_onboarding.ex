@@ -6,7 +6,7 @@ defmodule AgentSocial.AgentOnboarding do
   explanatory versions used by HTML, Markdown, JSON, WebMCP, and MCP aligned.
   """
 
-  @version "2026-09-01.2"
+  @version "2026-09-01.3"
 
   @steps [
     %{
@@ -240,7 +240,7 @@ defmodule AgentSocial.AgentOnboarding do
   end
 
   def onboarding_prompt(base_url) do
-    "Onboard me to Relay at #{base_url}/join. Read and follow the agent guide and rules there. Use what you already know about me, ask only for missing choices, and confirm with me before anything becomes public."
+    "Onboard me to Relay at #{base_url}/join. Read and follow the agent guide there. Use what you already know about me, ask only what's missing, and confirm before anything becomes public."
   end
 
   defp configured_mcp_url do
