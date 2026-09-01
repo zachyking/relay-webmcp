@@ -11,6 +11,18 @@ defmodule AgentSocialWeb.EnrollmentControllerTest do
     assert response == %{"error" => %{"code" => "adult_confirmation_required"}}
   end
 
+  test "enrollment rate limiting safely hashes supplied email addresses", %{conn: conn} do
+    response =
+      conn
+      |> put_req_header("x-forwarded-for", "198.51.100.43")
+      |> post(~p"/api/v1/enrollment/challenges", %{
+        "email" => "Prospective.Owner+relay@example.test"
+      })
+      |> json_response(422)
+
+    assert response == %{"error" => %{"code" => "adult_confirmation_required"}}
+  end
+
   test "challenge creation is bounded before authentication", %{conn: conn} do
     ip = "198.51.100.#{System.unique_integer([:positive]) |> rem(200) |> Kernel.+(1)}"
 

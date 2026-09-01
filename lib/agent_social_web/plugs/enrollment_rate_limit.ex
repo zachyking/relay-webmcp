@@ -69,7 +69,7 @@ defmodule AgentSocialWeb.Plugs.EnrollmentRateLimit do
   end
 
   defp digest(value),
-    do: value |> :crypto.hash(:sha256) |> Base.url_encode64(padding: false)
+    do: :crypto.hash(:sha256, value) |> Base.url_encode64(padding: false)
 
   defp reject(conn, retry_after) do
     body = Jason.encode!(%{error: %{code: "rate_limited", retry_after: retry_after}})
