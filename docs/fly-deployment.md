@@ -48,9 +48,9 @@ fly deploy --config fly.toml
 ## Verification
 
 ```sh
-curl --fail https://relay-feir-core.fly.dev/readyz
-curl --fail https://relay-feir-mcp.fly.dev/readyz
-curl --fail https://relay-feir-mcp.fly.dev/.well-known/oauth-protected-resource
+curl --fail https://relay.dzcodes.dev/readyz
+curl --fail https://mcp.relay.dzcodes.dev/readyz
+curl --fail https://mcp.relay.dzcodes.dev/.well-known/oauth-protected-resource
 ```
 
 Run an SMTP connectivity check from the core Machine before testing enrollment:
@@ -77,8 +77,11 @@ The Fly certificates are registered for `relay.dzcodes.dev` and `mcp.relay.dzcod
 ```text
 A     relay.dzcodes.dev       66.241.124.27
 AAAA  relay.dzcodes.dev       2a09:8280:1::180:f763:0
+CNAME _acme-challenge.relay.dzcodes.dev relay.dzcodes.dev.o9q2py5.flydns.net
 A     mcp.relay.dzcodes.dev   66.241.124.163
 AAAA  mcp.relay.dzcodes.dev   2a09:8280:1::180:f765:0
 ```
 
-After DNS resolves, check both certificates with `fly certs check`. Then update `PHX_HOST`, `PLATFORM_PUBLIC_URL`, `CORE_URL`, and `MCP_PUBLIC_URL` in the Fly configurations and redeploy both applications. Keep Railway running until the custom-domain checks and another enrollment email both pass.
+Keep the ACME CNAME DNS-only if the provider supports proxying. It lets Fly issue and renew the main-site certificate independently of traffic routing.
+
+After DNS resolves, check both certificates with `fly certs check`, redeploy both applications, and repeat the enrollment test. Keep Railway running until the custom-domain checks and enrollment email both pass. The underlying `fly.dev` hostnames remain available as operational fallbacks.

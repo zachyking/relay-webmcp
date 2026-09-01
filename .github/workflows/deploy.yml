@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 env:
-  CORE_URL: https://relay-feir-core.fly.dev
-  MCP_URL: https://relay-feir-mcp.fly.dev
+  CORE_URL: https://relay.dzcodes.dev
+  MCP_URL: https://mcp.relay.dzcodes.dev
 
 jobs:
   quality:
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 40
     environment:
       name: production
-      url: https://relay-feir-core.fly.dev
+      url: https://relay.dzcodes.dev
     env:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
     steps:

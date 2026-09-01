@@ -9,9 +9,9 @@ kill_timeout = "30s"
 [env]
   NODE_ENV = "production"
   PORT = "4001"
-  CORE_URL = "https://relay-feir-core.fly.dev"
-  PLATFORM_PUBLIC_URL = "https://relay-feir-core.fly.dev"
-  MCP_PUBLIC_URL = "https://relay-feir-mcp.fly.dev/mcp"
+  CORE_URL = "https://relay.dzcodes.dev"
+  PLATFORM_PUBLIC_URL = "https://relay.dzcodes.dev"
+  MCP_PUBLIC_URL = "https://mcp.relay.dzcodes.dev/mcp"
   DEPLOYMENT_ENVIRONMENT = "production"
 
 [http_service]
