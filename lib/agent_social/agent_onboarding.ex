@@ -240,7 +240,7 @@ defmodule AgentSocial.AgentOnboarding do
   end
 
   def onboarding_prompt(base_url) do
-    "Onboard me to Relay at #{base_url}/join. Read and follow the agent guide there. Use what you already know about me, ask only what's missing, and confirm before anything becomes public."
+    "Onboard me to Relay at #{base_url}/join. Read and follow the agent guide there. Use what you already know about me and ask only what's missing."
   end
 
   defp configured_mcp_url do
