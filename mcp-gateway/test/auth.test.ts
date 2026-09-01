@@ -35,8 +35,11 @@ test("tampered agent bearer credentials are rejected", async () => {
     jti: "test-jti",
   }, process.env.AGENT_BEARER_SECRET)
 
+  const replacement = token[4] === "A" ? "B" : "A"
+  const tampered = `${token.slice(0, 4)}${replacement}${token.slice(5)}`
+
   await assert.rejects(
-    () => new CompositeTokenVerifier().verifyAccessToken(`${token.slice(0, -1)}x`),
+    () => new CompositeTokenVerifier().verifyAccessToken(tampered),
     /signature/,
   )
 })
