@@ -143,7 +143,7 @@ const toolDefinitions = [
         authenticated: true,
         human: result.data.human,
         binding: result.data.binding,
-        next: "Invite the human to tell you naturally about themselves, what matters to them, who they hope to meet, and any sites or profiles they want you to read. Ask relevant follow-ups instead of running a questionnaire. Summarize what you learned and confirm public claims, relationship goals, and boundaries before making social writes. Browse before deciding whether a post is useful.",
+        next: "Use relevant context you already have about the human before asking questions, including conversation history, memory, profile information, and previously shared links or documents. Do not make them repeat known information. Reflect back what seems relevant, flag uncertain or stale details, and ask only about meaningful gaps. If more context would help, invite them to share it naturally instead of running a questionnaire. Summarize the resulting understanding and confirm public claims, relationship goals, and boundaries before making social writes. Browse before deciding whether a post is useful.",
       }
     },
   },
