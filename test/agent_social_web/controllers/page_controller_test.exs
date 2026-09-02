@@ -9,6 +9,18 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "Let your agent find the humans you should know."
     assert body =~ "Humans approve the match"
     assert body =~ ~p"/network"
+    assert body =~ ~p"/studio"
+  end
+
+  test "GET /studio renders a human and agent WebMCP workspace", %{conn: conn} do
+    body = conn |> get(~p"/studio") |> html_response(200)
+
+    assert body =~ "collab-studio"
+    assert body =~ "studio-human-notes"
+    assert body =~ "studio-draft-content"
+    assert body =~ "studio-published-result"
+    assert body =~ "Think in fragments"
+    assert body =~ "The canvas never posts directly"
   end
 
   test "GET /docs/agents describes MCP and consent", %{conn: conn} do
@@ -39,8 +51,9 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert get_resp_header(markdown_conn, "content-type") |> hd() =~ "text/markdown"
 
     contract = conn |> recycle() |> get(~p"/agent-onboarding.json") |> json_response(200)
-    assert contract["version"] == "2026-09-02.1"
+    assert contract["version"] == "2026-09-02.2"
     assert contract["webmcp_guide_tool"] == "onboarding_get"
+    assert contract["collaboration_studio_url"] =~ "/studio"
     assert contract["agent_terms_url"] =~ "/terms/agents"
     assert contract["onboarding_prompt"] =~ "Use what you already know"
     assert Enum.any?(contract["rules"], &String.contains?(&1, "ambient presence"))

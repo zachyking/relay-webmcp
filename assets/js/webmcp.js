@@ -1,3 +1,10 @@
+import {
+  buildPostPayload,
+  markStudioPublished,
+  readStudioContext,
+  setStudioDraft,
+} from "./collab_studio.js"
+
 const objectSchema = (properties = {}, required = []) => ({
   type: "object",
   properties,
@@ -261,6 +268,57 @@ const toolDefinitions = [
     execute: (input, {signal} = {}) => request("POST", "/api/v1/posts", input, signal),
   },
   {
+    name: "studio_context_get",
+    title: "Read human draft canvas",
+    description: "Read the human-authored private scratchpad and current visible draft from this Shared Draft page before writing or revising.",
+    inputSchema: objectSchema(),
+    annotations: {readOnlyHint: true},
+    execute: () => readStudioContext(),
+  },
+  {
+    name: "studio_draft_set",
+    title: "Show agent draft",
+    description: "Render a proposed public Relay post in the agent pane. This changes only the tab-local preview and does not publish.",
+    inputSchema: mutationSchema({
+      summary: string("Specific routing summary safe for public search.", {minLength: 1, maxLength: 240}),
+      body: string("Public post draft in the human's voice.", {minLength: 1, maxLength: 32768}),
+      relationship_modes: {
+        type: "array",
+        description: "One or more friendship, cofounder, business_partner, or customer modes.",
+        items: {type: "string", enum: ["friendship", "cofounder", "business_partner", "customer"]},
+        minItems: 1,
+        maxItems: 4,
+      },
+      topic_ids: {type: "array", description: "Up to 12 concise public routing topics.", items: {type: "string"}, maxItems: 12},
+      agent_note: string("Brief explanation of the framing or what remains open.", {maxLength: 500}),
+    }, ["summary", "body", "relationship_modes"]),
+    execute: input => {
+      const draft = setStudioDraft(input)
+      return {
+        draft_visible: true,
+        summary: draft.summary,
+        body_characters: draft.body.length,
+        relationship_modes: draft.relationship_modes,
+        topic_ids: draft.topic_ids,
+        next: "Invite revision or use studio_publish for this exact visible draft.",
+      }
+    },
+  },
+  {
+    name: "studio_publish",
+    title: "Publish visible draft",
+    description: "Publish the exact draft visible in the agent pane through the authenticated Relay session, then show its public link.",
+    inputSchema: mutationSchema(),
+    execute: async ({idempotency_key}, {signal} = {}) => {
+      const {current_draft: draft} = readStudioContext()
+      if (!draft) throw new Error("visible_draft_required")
+
+      const result = await request("POST", "/api/v1/posts", buildPostPayload(draft, idempotency_key), signal)
+      const published = markStudioPublished(result.data)
+      return {published: true, item_id: published.id, public_url: published.url}
+    },
+  },
+  {
     name: "post_reply",
     title: "Reply to content",
     description: "Publish a reply envelope under one visible item.",
@@ -457,7 +515,21 @@ export const toolsForCurrentPage = (pathname = window.location.pathname) => {
     const names = new Set(["onboarding_get", "platform_rules_get", "agent_session_set", "item_get", "post_reply", "reaction_set"])
     return toolDefinitions.filter(definition => names.has(definition.name))
   }
-  return pathname === "/" ? toolDefinitions : []
+  if (pathname === "/studio") {
+    const names = new Set([
+      "onboarding_get",
+      "platform_rules_get",
+      "agent_session_set",
+      "profile_get",
+      "policy_get",
+      "studio_context_get",
+      "studio_draft_set",
+      "studio_publish",
+    ])
+    return toolDefinitions.filter(definition => names.has(definition.name))
+  }
+  const studioTools = new Set(["studio_context_get", "studio_draft_set", "studio_publish"])
+  return pathname === "/" ? toolDefinitions.filter(definition => !studioTools.has(definition.name)) : []
 }
 
 export const registerWebMCPTools = async () => {

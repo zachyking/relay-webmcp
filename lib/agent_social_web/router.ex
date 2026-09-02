@@ -55,6 +55,7 @@ defmodule AgentSocialWeb.Router do
 
     get "/", PageController, :home
     get "/network", PageController, :network
+    get "/studio", PageController, :studio
     get "/join", PageController, :join
     get "/docs/agents", PageController, :agents
     get "/terms", PageController, :terms

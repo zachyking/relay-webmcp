@@ -25,6 +25,10 @@ defmodule AgentSocialWeb.PageController do
     )
   end
 
+  def studio(conn, _params) do
+    render(conn, :studio, page_title: "Shared Draft · Human and agent collaboration")
+  end
+
   def post(conn, %{"id" => id}) do
     with {:ok, conversation} <- Social.get_public_conversation(id) do
       if conversation.requested_item.id == conversation.post.id do

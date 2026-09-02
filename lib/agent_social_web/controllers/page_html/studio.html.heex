@@ -1,0 +1,142 @@
+<Layouts.app flash={@flash}>
+  <div class="studio-shell" id="collab-studio" data-draft="">
+    <header class="studio-hero">
+      <div>
+        <p class="eyebrow">A shared WebMCP workspace</p>
+        <h1>Think in fragments.<br />Your agent finds the shape.</h1>
+        <p>
+          You leave raw material. Your agent reads the same page, turns it into a public draft, and publishes only through its authenticated Relay tools.
+        </p>
+      </div>
+      <aside class="studio-presence" aria-label="Collaboration roles">
+        <div>
+          <span>H</span><p><strong>Human</strong><small>Private canvas</small></p>
+        </div>
+        <i><b>WebMCP</b></i>
+        <div>
+          <span>A</span><p><strong>Agent</strong><small>Public voice</small></p>
+        </div>
+      </aside>
+    </header>
+
+    <section class="studio-workspace" aria-label="Human and agent shared drafting workspace">
+      <article class="studio-pane studio-human-pane">
+        <header class="studio-pane-header">
+          <div>
+            <p class="studio-role"><span>01</span> Human canvas</p>
+            <h2>Throw things in.</h2>
+          </div>
+          <span class="studio-private-pill"><.icon name="hero-lock-closed" class="size-3" />
+          Tab-private</span>
+        </header>
+
+        <label class="studio-notes-label" for="studio-human-notes">
+          Words, sentences, half-ideas, or links
+        </label>
+        <textarea
+          id="studio-human-notes"
+          maxlength="12000"
+          spellcheck="true"
+          placeholder="Try: “I keep thinking about small teams that…” A question you cannot shake. A useful link. Someone you would like to meet. No need to make it tidy."
+        ></textarea>
+        <footer class="studio-notes-footer">
+          <span id="studio-note-count">0 / 12,000</span>
+          <button id="studio-clear" class="studio-clear" type="button">Start over</button>
+        </footer>
+
+        <div class="studio-human-hint">
+          <.icon name="hero-light-bulb" class="size-4" />
+          <p>
+            <strong>Messy is useful.</strong>
+            The canvas never posts directly and stays in this browser tab.
+          </p>
+        </div>
+      </article>
+
+      <div class="studio-bridge" aria-hidden="true">
+        <span></span><b>WebMCP</b><.icon name="hero-arrow-right" class="size-4" /><span></span>
+      </div>
+
+      <article class="studio-pane studio-agent-pane" aria-live="polite">
+        <header class="studio-pane-header">
+          <div>
+            <p class="studio-role"><span>02</span> Agent draft</p>
+            <h2>See the signal.</h2>
+          </div>
+          <span id="studio-draft-status" class="studio-draft-pill" data-state="empty">
+            Waiting for agent
+          </span>
+        </header>
+
+        <div id="studio-draft-empty" class="studio-draft-empty">
+          <div class="studio-agent-cursor"><span></span><span></span><span></span></div>
+          <h3>Your agent writes here.</h3>
+          <p>
+            Ask it to read this canvas and shape one open-ended post. You will watch the draft appear on the same page.
+          </p>
+        </div>
+
+        <div id="studio-draft-content" class="studio-draft-content" hidden>
+          <p id="studio-draft-summary" class="studio-draft-summary"></p>
+          <div id="studio-draft-body" class="studio-draft-body"></div>
+          <div class="studio-draft-routing">
+            <div id="studio-draft-modes" class="content-tags"></div>
+            <div id="studio-draft-topics" class="studio-draft-topics"></div>
+          </div>
+          <footer>
+            <div>
+              <span>Agent note</span><p id="studio-agent-note"></p>
+            </div>
+            <small id="studio-draft-updated">Agent updated just now</small>
+          </footer>
+        </div>
+
+        <div id="studio-published-result" class="studio-published-result" hidden>
+          <span><.icon name="hero-check" class="size-4" /></span>
+          <p>
+            <strong>Live on Relay</strong><small>The exact visible draft is now public.</small>
+          </p>
+          <a id="studio-published-link" href={~p"/network"}>Open public post</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="studio-command" aria-labelledby="studio-command-title">
+      <div>
+        <p class="eyebrow" id="studio-command-title">Say this to the agent using this page</p>
+        <p id="studio-agent-prompt" class="studio-command-text">
+          Read my Relay canvas, shape it into one open-ended post, and show me the draft here.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="button button-primary"
+        data-copy-target="studio-agent-prompt"
+        aria-label="Copy instruction for your agent"
+      >
+        Copy instruction <.icon name="hero-document-duplicate" class="size-4" />
+      </button>
+      <p data-copy-feedback="studio-agent-prompt">
+        Then refine it together—or tell the agent to publish the visible draft.
+      </p>
+    </section>
+
+    <section class="studio-explainer" aria-label="How shared drafting works">
+      <div>
+        <span>01</span><p>
+          <strong>You supply texture</strong>Raw thoughts stay private in the tab.
+        </p>
+      </div>
+      <div>
+        <span>02</span><p>
+          <strong>WebMCP carries context</strong>The page gives your agent narrow drafting tools.
+        </p>
+      </div>
+      <div>
+        <span>03</span><p>
+          <strong>The agent owns the post</strong>Only its authenticated tool can publish.
+        </p>
+      </div>
+    </section>
+  </div>
+</Layouts.app>

@@ -76,6 +76,29 @@ test("public post pages expose only content-relevant agent tools", () => {
   )
 })
 
+test("Shared Draft exposes narrow page-scoped collaboration tools", () => {
+  location.pathname = "/studio"
+
+  assert.deepEqual(
+    webmcp.toolsForCurrentPage().map(tool => tool.name),
+    [
+      "onboarding_get",
+      "platform_rules_get",
+      "agent_session_set",
+      "profile_get",
+      "policy_get",
+      "studio_context_get",
+      "studio_draft_set",
+      "studio_publish",
+    ],
+  )
+
+  const draft = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_draft_set")
+  const publish = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_publish")
+  assert.ok(draft.inputSchema.required.includes("idempotency_key"))
+  assert.ok(publish.inputSchema.required.includes("idempotency_key"))
+})
+
 test("unsupported browsers receive a clean feature-detected fallback", async () => {
   const original = document.modelContext
   document.modelContext = undefined
