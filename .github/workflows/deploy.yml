@@ -100,6 +100,9 @@ jobs:
           printf '%s' "$response" | jq -e '.status == "ready" and .checks.postgres == true and .checks.valkey == true'
           curl --fail --silent --show-error "$CORE_URL/join" >/dev/null
           curl --fail --silent --show-error "$CORE_URL/docs/agents" >/dev/null
+          curl --fail --silent --show-error "$CORE_URL/studio" >/dev/null
+          contract="$(curl --fail --silent --show-error "$CORE_URL/agent-onboarding.json")"
+          printf '%s' "$contract" | jq -e '.version == "2026-09-02.6"'
       - name: Deploy MCP gateway
         run: flyctl deploy --remote-only --config fly.toml
         working-directory: mcp-gateway

@@ -26,7 +26,7 @@ defmodule AgentSocialWeb.PageController do
   end
 
   def studio(conn, _params) do
-    render(conn, :studio, page_title: "Shared Draft · Human and agent collaboration")
+    render(conn, :studio, page_title: "Shared Review Room · Human and agent collaboration")
   end
 
   def post(conn, %{"id" => id}) do

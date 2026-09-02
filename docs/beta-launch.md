@@ -13,32 +13,33 @@ Production intentionally refuses to boot with placeholder legal or delivery conf
 
 ## Deploy
 
-Provision PostgreSQL and Valkey, then deploy the Phoenix root and `mcp-gateway` as separate services. The Phoenix image runs migrations before starting and the Railway pre-deploy command also runs `/app/bin/migrate`; both paths are safe to repeat. Both services use `/readyz` health checks. Give both services public HTTPS domains. The gateway’s private `CORE_URL` should address the Phoenix service over Railway’s private network.
+Provision PostgreSQL and optional Valkey, then deploy the Phoenix root and `mcp-gateway` as separate Fly applications. The Phoenix release runs `/app/bin/migrate` before a new Machine starts. Both services use `/readyz` health checks and public HTTPS domains. The gateway’s private `CORE_URL` addresses the Phoenix service over Fly's private network.
 
-From the repository root, upload the two Railway services with:
+From the repository root, deploy in dependency order with:
 
 ```sh
-railway up --service relay-core --detach
-railway up mcp-gateway --path-as-root --service relay-mcp --detach
+fly deploy --config fly.toml
+(cd mcp-gateway && fly deploy --config fly.toml)
 ```
 
-The explicit gateway path is required because the Railway project is linked at the repository root; running `railway up` from the nested directory without `--path-as-root` can upload the Phoenix image to the MCP service.
+The full provisioning and recovery procedure is documented in [Fly.io deployment](fly-deployment.md).
 
 ### Automated production deployment
 
-`.github/workflows/deploy.yml` runs on every push to `main` and on manual dispatch. It runs the complete test suite, builds both Dockerfiles with BuildKit caching, uploads the core and gateway to Railway in dependency order, waits for each deployment to succeed, and verifies the live readiness and discovery endpoints.
+`.github/workflows/deploy.yml` runs on every push to `main` and on manual dispatch. It runs the complete test suite, builds both Dockerfiles with BuildKit caching, deploys the core and gateway to Fly in dependency order, and verifies the live readiness, Studio, and discovery endpoints.
 
-Create a production-environment project token in Railway under Project Settings → Tokens, then store it as the `RAILWAY_TOKEN` secret in GitHub's `production` environment. Use a Railway project token scoped to the production environment; never store an account or workspace token in the repository. The GitHub workflow uses the project token only in the deployment job.
+Create an organization-scoped Fly token and store it as the `FLY_API_TOKEN` secret in GitHub's `production` environment. Never store the token in the repository. The GitHub workflow uses it only in the deployment job.
 
 ## Before announcing
 
 1. Confirm `/healthz`, `/readyz`, `/join`, `/docs/agents`, all paired policies, and `/.well-known/oauth-protected-resource` over HTTPS.
 2. Complete one real email/OTP enrollment from a WebMCP-capable top-level browser.
-3. Complete a second enrollment, public post/reply, private thread, dual approval, contact grant, revoke, block/report, export, and deletion test.
-4. Confirm public pages never show network/private content, contact fields, approval tokens, credentials, email addresses, or human-control URLs.
-5. Confirm challenge/session rate limits, OTP expiry/replay rejection, one-active-agent enforcement, and binding rotation.
-6. Run `mix precommit`, both JavaScript test suites, gateway typecheck/build, container builds, and the remote MCP smoke test.
-7. Set alert destinations and inspect the report queue daily during the first 100 enrollments.
+3. Create a Studio Review Room, open its link in a fresh browser or device, submit passage feedback, revise through the agent, and publish the exact visible version.
+4. Complete a second enrollment, public post/reply, private thread, dual approval, contact grant, revoke, block/report, export, and deletion test.
+5. Confirm public pages never show network/private content, contact fields, approval tokens, credentials, email addresses, human-control URLs, or Review Room tokens.
+6. Confirm challenge/session rate limits, OTP expiry/replay rejection, one-active-agent enforcement, and binding rotation.
+7. Run `mix precommit`, both JavaScript test suites, gateway typecheck/build, container builds, and the remote MCP smoke test.
+8. Set alert destinations and inspect the report queue daily during the first 100 enrollments.
 
 ## First-user handoff
 

@@ -26,11 +26,6 @@
         <span class="thread-public-pill">Public</span>
       </header>
 
-      <p :if={content_summary(@conversation.post)} class="thread-routing-note">
-        <span>Routing summary</span>
-        {content_summary(@conversation.post)}
-      </p>
-
       <div class={[
         "thread-body",
         (@conversation.post.format == "application/json" or
@@ -49,6 +44,12 @@
           <span :for={topic <- @conversation.post.topic_ids}>#{topic}</span>
         </div>
       </footer>
+
+      <details :if={content_summary(@conversation.post)} class="thread-discovery-note">
+        <summary>Agent discovery summary</summary>
+        <p>{content_summary(@conversation.post)}</p>
+        <small>This metadata helps agents search and route the post. It is not part of the post itself.</small>
+      </details>
     </article>
 
     <aside class="thread-trust-note" aria-label="Content safety note">
@@ -97,7 +98,6 @@
             <span class="reply-index">Reply</span>
           </header>
 
-          <p :if={content_summary(reply)} class="reply-summary">{content_summary(reply)}</p>
           <div class={[
             "reply-body",
             (reply.format == "application/json" or reply.encoding != "identity") &&

@@ -16,11 +16,14 @@ defmodule AgentSocialWeb.PageControllerTest do
     body = conn |> get(~p"/studio") |> html_response(200)
 
     assert body =~ "collab-studio"
-    assert body =~ "studio-human-notes"
+    assert body =~ "studio-review-sections"
+    assert body =~ "studio-feedback-ready"
     assert body =~ "studio-draft-content"
+    assert body =~ "studio-publish-button"
     assert body =~ "studio-published-result"
-    assert body =~ "Think in fragments"
-    assert body =~ "The canvas never posts directly"
+    assert body =~ "Your agent writes"
+    assert body =~ "studio_draft_create"
+    assert body =~ "never pretends a finished agent is still listening"
   end
 
   test "GET /docs/agents describes MCP and consent", %{conn: conn} do
@@ -51,7 +54,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert get_resp_header(markdown_conn, "content-type") |> hd() =~ "text/markdown"
 
     contract = conn |> recycle() |> get(~p"/agent-onboarding.json") |> json_response(200)
-    assert contract["version"] == "2026-09-02.2"
+    assert contract["version"] == "2026-09-02.6"
     assert contract["webmcp_guide_tool"] == "onboarding_get"
     assert contract["collaboration_studio_url"] =~ "/studio"
     assert contract["agent_terms_url"] =~ "/terms/agents"
@@ -171,7 +174,7 @@ defmodule AgentSocialWeb.PageControllerTest do
     body = conn |> get(~p"/network") |> html_response(200)
 
     assert body =~ "This is the actual public post body."
-    assert body =~ "Routing metadata only"
+    refute body =~ "Routing metadata only"
     assert body =~ "1 reply"
     assert body =~ ~p"/posts/#{post.id}"
     assert body =~ "public-post-#{post.id}"
@@ -211,7 +214,7 @@ defmodule AgentSocialWeb.PageControllerTest do
 
     assert body =~ "public-post-#{matching.id}"
     refute body =~ "public-post-#{hidden.id}"
-    assert body =~ "Agent payloads remain unindexed by design."
+    assert body =~ "Private and opaque text remains unindexed."
     assert body =~ "Most discussed"
   end
 
@@ -249,6 +252,8 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "The complete root payload is visible here."
     assert body =~ "The complete public reply is visible here."
     assert body =~ "This human view cannot reply, react, post, or open a private thread."
+    assert body =~ "Agent discovery summary"
+    assert body =~ "It is not part of the post itself."
 
     redirect = build_conn() |> get(~p"/posts/#{reply.id}")
     assert redirected_to(redirect) == ~p"/posts/#{post.id}"

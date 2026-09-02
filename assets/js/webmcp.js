@@ -1,8 +1,12 @@
 import {
   buildPostPayload,
+  configureStudioPersistence,
+  configureStudioPublisher,
+  configureStudioSessionProbe,
   markStudioPublished,
-  readStudioContext,
+  readStudioReview,
   setStudioDraft,
+  studioSessionReference,
 } from "./collab_studio.js"
 
 const objectSchema = (properties = {}, required = []) => ({
@@ -59,6 +63,105 @@ const request = async (method, path, body, signal) => {
 
   return payload
 }
+
+const reviewRequest = async (method, path, token, body, signal, idempotencyKey) => {
+  const headers = {
+    "accept": "application/json",
+    "x-relay-review-token": token,
+  }
+  const options = {method, headers, credentials: "same-origin", signal}
+
+  if (body !== undefined) {
+    headers["content-type"] = "application/json"
+    options.body = JSON.stringify(body)
+  }
+  if (idempotencyKey) headers["idempotency-key"] = idempotencyKey
+
+  const response = await fetch(path, options)
+  const payload = await response.json().catch(() => ({error: {code: "invalid_response"}}))
+
+  if (!response.ok) {
+    const error = new Error(payload?.error?.code || `request_failed_${response.status}`)
+    error.cause = payload
+    throw error
+  }
+
+  return payload
+}
+
+export const publishVisibleStudioDraft = async (idempotencyKey, signal) => {
+  const {id} = studioSessionReference()
+  if (!id) throw new Error("studio_session_required")
+
+  const result = await request("POST", `/api/v1/studio-sessions/${encodeURIComponent(id)}/publish`, {
+    idempotency_key: idempotencyKey || crypto.randomUUID(),
+  }, signal)
+  const published = markStudioPublished(result.data)
+  return {published: true, item_id: published.id, public_url: published.url}
+}
+
+configureStudioPersistence({
+  create: async (draft, idempotencyKey, signal) => {
+    const result = await request("POST", "/api/v1/studio-sessions", {
+      ...draft,
+      idempotency_key: idempotencyKey,
+    }, signal)
+    return result.data
+  },
+  loadByToken: async (token, signal) => {
+    const result = await reviewRequest("GET", "/api/v1/studio-review", token, undefined, signal)
+    return result.data
+  },
+  loadForAgent: async (id, signal) => {
+    const result = await request("GET", `/api/v1/studio-sessions/${encodeURIComponent(id)}`, undefined, signal)
+    return result.data
+  },
+  saveReview: async (token, review, signal) => {
+    const result = await reviewRequest("PUT", "/api/v1/studio-review", token, review, signal)
+    return result.data
+  },
+  markReady: async (token, draftVersion, signal) => {
+    const result = await reviewRequest(
+      "POST",
+      "/api/v1/studio-review/ready",
+      token,
+      {draft_version: draftVersion},
+      signal,
+    )
+    return result.data
+  },
+  revise: async (id, basedOnVersion, draft, idempotencyKey, signal) => {
+    const result = await request("PUT", `/api/v1/studio-sessions/${encodeURIComponent(id)}`, {
+      ...draft,
+      based_on_version: basedOnVersion,
+      idempotency_key: idempotencyKey,
+    }, signal)
+    return result.data
+  },
+})
+configureStudioPublisher(async idempotencyKey => {
+  const {review_token: token} = studioSessionReference()
+  if (!token) throw new Error("review_token_required")
+  const result = await reviewRequest(
+    "POST",
+    "/api/v1/studio-review/publish",
+    token,
+    {},
+    undefined,
+    idempotencyKey,
+  )
+  return markStudioPublished(result.data)
+})
+configureStudioSessionProbe(async () => {
+  if (studioSessionReference().review_token) return true
+  try {
+    await request("GET", "/api/v1/whoami")
+    return true
+  } catch (error) {
+    if (error?.message === "unauthorized" || error?.message === "request_failed_401") return false
+    throw error
+  }
+})
 
 const query = values => {
   const params = new URLSearchParams()
@@ -268,20 +371,12 @@ const toolDefinitions = [
     execute: (input, {signal} = {}) => request("POST", "/api/v1/posts", input, signal),
   },
   {
-    name: "studio_context_get",
-    title: "Read human draft canvas",
-    description: "Read the human-authored private scratchpad and current visible draft from this Shared Draft page before writing or revising.",
-    inputSchema: objectSchema(),
-    annotations: {readOnlyHint: true},
-    execute: () => readStudioContext(),
-  },
-  {
-    name: "studio_draft_set",
-    title: "Show agent draft",
-    description: "Render a proposed public Relay post in the agent pane. This changes only the tab-local preview and does not publish.",
+    name: "studio_draft_create",
+    title: "Create visible first draft",
+    description: "Create a durable private review room from the current conversation and known human context. Return its secure link so the human can review on any device.",
     inputSchema: mutationSchema({
       summary: string("Specific routing summary safe for public search.", {minLength: 1, maxLength: 240}),
-      body: string("Public post draft in the human's voice.", {minLength: 1, maxLength: 32768}),
+      body: string("Public post draft, separated into reviewable paragraphs.", {minLength: 1, maxLength: 32768}),
       relationship_modes: {
         type: "array",
         description: "One or more friendship, cofounder, business_partner, or customer modes.",
@@ -292,15 +387,53 @@ const toolDefinitions = [
       topic_ids: {type: "array", description: "Up to 12 concise public routing topics.", items: {type: "string"}, maxItems: 12},
       agent_note: string("Brief explanation of the framing or what remains open.", {maxLength: 500}),
     }, ["summary", "body", "relationship_modes"]),
-    execute: input => {
-      const draft = setStudioDraft(input)
+    execute: async ({idempotency_key, ...input}) => {
+      const result = await setStudioDraft(input, {mode: "create", idempotencyKey: idempotency_key})
       return {
         draft_visible: true,
-        summary: draft.summary,
-        body_characters: draft.body.length,
-        relationship_modes: draft.relationship_modes,
-        topic_ids: draft.topic_ids,
-        next: "Invite revision or use studio_publish for this exact visible draft.",
+        draft_version: result.draft_version,
+        review_url: result.review_url,
+        next: "Give the human this secure review_url. It opens the latest saved draft on any device. When they say feedback is ready, call studio_review_get.",
+      }
+    },
+  },
+  {
+    name: "studio_review_get",
+    title: "Read human editorial review",
+    description: "Read the human's structured paragraph decisions and private comments from the shared page after they say their review is ready.",
+    inputSchema: objectSchema(),
+    annotations: {readOnlyHint: true, untrustedContentHint: true},
+    execute: () => readStudioReview(),
+  },
+  {
+    name: "studio_draft_revise",
+    title: "Revise visible draft",
+    description: "Replace the visible draft after reading its structured human review. Use the exact reviewed version to prevent stale edits.",
+    inputSchema: mutationSchema({
+      based_on_version: integer("Exact draft version returned by studio_review_get.", {minimum: 1}),
+      summary: string("Specific routing summary safe for public search.", {minLength: 1, maxLength: 240}),
+      body: string("Revised public post, separated into reviewable paragraphs.", {minLength: 1, maxLength: 32768}),
+      relationship_modes: {
+        type: "array",
+        description: "One or more friendship, cofounder, business_partner, or customer modes.",
+        items: {type: "string", enum: ["friendship", "cofounder", "business_partner", "customer"]},
+        minItems: 1,
+        maxItems: 4,
+      },
+      topic_ids: {type: "array", description: "Up to 12 concise public routing topics.", items: {type: "string"}, maxItems: 12},
+      agent_note: string("Briefly explain how the review changed this version.", {maxLength: 500}),
+    }, ["based_on_version", "summary", "body", "relationship_modes"]),
+    execute: async ({based_on_version, idempotency_key, ...input}) => {
+      const result = await setStudioDraft(input, {
+        mode: "revise",
+        basedOnVersion: based_on_version,
+        idempotencyKey: idempotency_key,
+      })
+      return {
+        draft_visible: true,
+        draft_version: result.draft_version,
+        review_url: result.review_url,
+        next: "The revised draft is visible. Ask the human to review again or publish the exact approved version.",
       }
     },
   },
@@ -309,14 +442,7 @@ const toolDefinitions = [
     title: "Publish visible draft",
     description: "Publish the exact draft visible in the agent pane through the authenticated Relay session, then show its public link.",
     inputSchema: mutationSchema(),
-    execute: async ({idempotency_key}, {signal} = {}) => {
-      const {current_draft: draft} = readStudioContext()
-      if (!draft) throw new Error("visible_draft_required")
-
-      const result = await request("POST", "/api/v1/posts", buildPostPayload(draft, idempotency_key), signal)
-      const published = markStudioPublished(result.data)
-      return {published: true, item_id: published.id, public_url: published.url}
-    },
+    execute: ({idempotency_key}, {signal} = {}) => publishVisibleStudioDraft(idempotency_key, signal),
   },
   {
     name: "post_reply",
@@ -515,20 +641,21 @@ export const toolsForCurrentPage = (pathname = window.location.pathname) => {
     const names = new Set(["onboarding_get", "platform_rules_get", "agent_session_set", "item_get", "post_reply", "reaction_set"])
     return toolDefinitions.filter(definition => names.has(definition.name))
   }
-  if (pathname === "/studio") {
+  if (pathname === "/studio" || pathname === "/studio/review") {
     const names = new Set([
       "onboarding_get",
       "platform_rules_get",
       "agent_session_set",
       "profile_get",
       "policy_get",
-      "studio_context_get",
-      "studio_draft_set",
+      "studio_draft_create",
+      "studio_review_get",
+      "studio_draft_revise",
       "studio_publish",
     ])
     return toolDefinitions.filter(definition => names.has(definition.name))
   }
-  const studioTools = new Set(["studio_context_get", "studio_draft_set", "studio_publish"])
+  const studioTools = new Set(["studio_draft_create", "studio_review_get", "studio_draft_revise", "studio_publish"])
   return pathname === "/" ? toolDefinitions.filter(definition => !studioTools.has(definition.name)) : []
 }
 

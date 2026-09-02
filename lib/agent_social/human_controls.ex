@@ -16,6 +16,7 @@ defmodule AgentSocial.HumanControls do
   alias AgentSocial.Operations.{AuditEvent, InboxEvent}
   alias AgentSocial.Safety.{Block, Report}
   alias AgentSocial.Social.ContentEnvelope
+  alias AgentSocial.Studio.ReviewSession
   alias AgentSocial.{Identity, RateLimiter, Repo, Safety}
 
   @token_salt "human-control-v1"
@@ -214,6 +215,23 @@ defmodule AgentSocial.HumanControls do
             :deleted_at
           ])
         ),
+      studio_review_sessions:
+        list(ReviewSession, where: [human_id: human.id])
+        |> Enum.map(
+          &take(&1, [
+            :id,
+            :draft,
+            :draft_version,
+            :review,
+            :status,
+            :published_content_id,
+            :expires_at,
+            :last_agent_action_at,
+            :last_human_action_at,
+            :inserted_at,
+            :updated_at
+          ])
+        ),
       threads:
         Repo.all(
           from thread in Thread,
@@ -379,6 +397,14 @@ defmodule AgentSocial.HumanControls do
 
     policies = owned_records(Policy, event_ids(events, "policy"), human.id, :human_id)
 
+    studio_sessions =
+      owned_records(
+        ReviewSession,
+        event_ids(events, "studio_review_session"),
+        human.id,
+        :human_id
+      )
+
     threads =
       Repo.all(
         from thread in Thread,
@@ -404,7 +430,8 @@ defmodule AgentSocial.HumanControls do
       "contact_field" => contacts,
       "policy" => policies,
       "thread" => threads,
-      "introduction" => introductions
+      "introduction" => introductions,
+      "studio_review_session" => studio_sessions
     }
 
     Enum.map(events, fn event ->
@@ -498,6 +525,19 @@ defmodule AgentSocial.HumanControls do
       title: "Introduction proposal",
       body: proposal.purpose,
       facts: [{"Status", humanize(proposal.status)}, {"Thread", proposal.thread_id}]
+    }
+  end
+
+  defp resource_detail("studio_review_session", %ReviewSession{} = session) do
+    %{
+      title: "Shared Review Room · draft v#{session.draft_version}",
+      body: session.draft["body"],
+      facts: [
+        {"Status", humanize(session.status)},
+        {"Summary", session.draft["summary"]},
+        {"Relationship modes", Enum.join(session.draft["relationship_modes"] || [], ", ")},
+        {"Review expires", DateTime.to_iso8601(session.expires_at)}
+      ]
     }
   end
 

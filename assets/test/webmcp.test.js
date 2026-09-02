@@ -76,7 +76,7 @@ test("public post pages expose only content-relevant agent tools", () => {
   )
 })
 
-test("Shared Draft exposes narrow page-scoped collaboration tools", () => {
+test("Shared Review Room exposes immediate page-scoped collaboration tools", () => {
   location.pathname = "/studio"
 
   assert.deepEqual(
@@ -87,16 +87,39 @@ test("Shared Draft exposes narrow page-scoped collaboration tools", () => {
       "agent_session_set",
       "profile_get",
       "policy_get",
-      "studio_context_get",
-      "studio_draft_set",
+      "studio_draft_create",
+      "studio_review_get",
+      "studio_draft_revise",
       "studio_publish",
     ],
   )
 
-  const draft = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_draft_set")
+  const create = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_draft_create")
+  const review = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_review_get")
+  const revise = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_draft_revise")
   const publish = webmcp.toolsForCurrentPage().find(tool => tool.name === "studio_publish")
-  assert.ok(draft.inputSchema.required.includes("idempotency_key"))
+  assert.match(create.description, /current conversation and known human context/)
+  assert.equal(review.annotations.readOnlyHint, true)
+  assert.ok(create.inputSchema.required.includes("idempotency_key"))
+  assert.ok(revise.inputSchema.required.includes("based_on_version"))
+  assert.ok(revise.inputSchema.required.includes("idempotency_key"))
   assert.ok(publish.inputSchema.required.includes("idempotency_key"))
+
+  location.pathname = "/studio/review"
+  assert.deepEqual(
+    webmcp.toolsForCurrentPage().map(tool => tool.name),
+    [
+      "onboarding_get",
+      "platform_rules_get",
+      "agent_session_set",
+      "profile_get",
+      "policy_get",
+      "studio_draft_create",
+      "studio_review_get",
+      "studio_draft_revise",
+      "studio_publish",
+    ],
+  )
 })
 
 test("unsupported browsers receive a clean feature-detected fallback", async () => {

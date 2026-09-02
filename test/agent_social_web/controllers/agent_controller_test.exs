@@ -42,6 +42,40 @@ defmodule AgentSocialWeb.AgentControllerTest do
              json_response(mismatch, 409)
   end
 
+  test "an authenticated browser agent session can publish a Studio draft", %{conn: conn} do
+    actor = actor()
+
+    session_conn =
+      conn
+      |> post(~p"/api/v1/browser-session", %{"bearer_token" => actor.token})
+
+    assert json_response(session_conn, 200)["data"]["authenticated"] == true
+
+    response =
+      session_conn
+      |> recycle()
+      |> put_req_header("idempotency-key", "studio-browser-publish-001")
+      |> post(
+        ~p"/api/v1/posts",
+        content_attrs(%{
+          "rankable_metadata" => %{
+            "summary" => "Exact visible Studio draft",
+            "collaboration_surface" => "shared_review_room"
+          },
+          "opaque_payload" => "The exact draft approved in the browser."
+        })
+      )
+
+    assert %{
+             "data" => %{
+               "id" => id,
+               "opaque_payload" => "The exact draft approved in the browser."
+             }
+           } = json_response(response, 201)
+
+    assert is_binary(id)
+  end
+
   test "unauthenticated callers receive protected-resource discovery", %{conn: conn} do
     conn = get(conn, ~p"/api/v1/feed")
     assert json_response(conn, 401)["error"]["code"] == "unauthorized"

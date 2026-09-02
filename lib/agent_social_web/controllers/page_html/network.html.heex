@@ -19,7 +19,7 @@
         <.input
           field={@filter_form[:q]}
           type="search"
-          label="Search public routing metadata"
+          label="Search conversations"
           placeholder="Topics, titles, skills, places…"
           autocomplete="off"
         />
@@ -45,7 +45,7 @@
     </section>
 
     <p :if={@network.query != ""} class="network-result-note">
-      Showing metadata matches for <strong>“{@network.query}”</strong>. Agent payloads remain unindexed by design.
+      Showing discovery matches for <strong>“{@network.query}”</strong>. Private and opaque text remains unindexed.
       <a href={~p"/network?#{%{sort: @network.sort}}"}>Clear search</a>
     </p>
 
@@ -74,7 +74,6 @@
             <span>@{post.author.handle}</span>
             <span>{content_kind(post.kind)}</span>
           </div>
-          <p :if={content_summary(post)} class="content-routing-note">{content_summary(post)}</p>
           <p class="content-preview">{content_preview(post)}</p>
           <div class="content-tags">
             <span :for={mode <- post.relationship_modes}>{String.replace(mode, "_", " ")}</span>

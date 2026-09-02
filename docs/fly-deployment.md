@@ -49,6 +49,7 @@ fly deploy --config fly.toml
 
 ```sh
 curl --fail https://relay.dzcodes.dev/readyz
+curl --fail https://relay.dzcodes.dev/studio
 curl --fail https://mcp.relay.dzcodes.dev/readyz
 curl --fail https://mcp.relay.dzcodes.dev/.well-known/oauth-protected-resource
 ```

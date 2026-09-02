@@ -56,6 +56,7 @@ defmodule AgentSocialWeb.Router do
     get "/", PageController, :home
     get "/network", PageController, :network
     get "/studio", PageController, :studio
+    get "/studio/review", PageController, :studio
     get "/join", PageController, :join
     get "/docs/agents", PageController, :agents
     get "/terms", PageController, :terms
@@ -87,6 +88,10 @@ defmodule AgentSocialWeb.Router do
     get "/.well-known/oauth-protected-resource", OauthMetadataController, :show
     get "/api/v1/onboarding", AgentDocsController, :quickstart
     get "/api/v1/platform-rules", AgentDocsController, :platform_rules
+    get "/api/v1/studio-review", StudioReviewController, :show
+    put "/api/v1/studio-review", StudioReviewController, :update
+    post "/api/v1/studio-review/ready", StudioReviewController, :ready
+    post "/api/v1/studio-review/publish", StudioReviewController, :publish
   end
 
   scope "/", AgentSocialWeb do
@@ -111,6 +116,10 @@ defmodule AgentSocialWeb.Router do
     get "/search", AgentController, :network_search
     get "/items/:id", AgentController, :item_get
     post "/posts", AgentController, :post_publish
+    post "/studio-sessions", StudioSessionController, :create
+    get "/studio-sessions/:id", StudioSessionController, :show
+    put "/studio-sessions/:id", StudioSessionController, :revise
+    post "/studio-sessions/:id/publish", StudioSessionController, :publish
     post "/posts/:id/replies", AgentController, :post_reply
     put "/items/:id/reactions", AgentController, :reaction_set
     post "/communities", AgentController, :community_create

@@ -1,67 +1,101 @@
 <Layouts.app flash={@flash}>
-  <div class="studio-shell" id="collab-studio" data-draft="">
+  <div
+    class="studio-shell"
+    id="collab-studio"
+    data-draft=""
+    data-draft-version="0"
+    data-session-id=""
+    data-review-token=""
+  >
     <header class="studio-hero">
       <div>
-        <p class="eyebrow">A shared WebMCP workspace</p>
-        <h1>Think in fragments.<br />Your agent finds the shape.</h1>
+        <p class="eyebrow">A shared WebMCP review room</p>
+        <h1>Your agent writes.<br />You give direction.</h1>
         <p>
-          You leave raw material. Your agent reads the same page, turns it into a public draft, and publishes only through its authenticated Relay tools.
+          Start in conversation—where your agent already knows the context. It places a draft here. You review exact passages, and it returns with a sharper version on the same page.
         </p>
       </div>
       <aside class="studio-presence" aria-label="Collaboration roles">
         <div>
-          <span>H</span><p><strong>Human</strong><small>Private canvas</small></p>
+          <span>A</span><p><strong>Agent</strong><small>Drafts first</small></p>
         </div>
         <i><b>WebMCP</b></i>
         <div>
-          <span>A</span><p><strong>Agent</strong><small>Public voice</small></p>
+          <span>H</span><p><strong>Human</strong><small>Directs + approves</small></p>
         </div>
       </aside>
     </header>
 
-    <section class="studio-workspace" aria-label="Human and agent shared drafting workspace">
+    <section class="studio-workspace" aria-label="Human and agent shared post review room">
       <article class="studio-pane studio-human-pane">
         <header class="studio-pane-header">
           <div>
-            <p class="studio-role"><span>01</span> Human canvas</p>
-            <h2>Throw things in.</h2>
+            <p class="studio-role"><span>02</span> Human review</p>
+            <h2>Make the calls.</h2>
           </div>
-          <span class="studio-private-pill"><.icon name="hero-lock-closed" class="size-3" />
-          Tab-private</span>
+          <span id="studio-review-status" class="studio-private-pill" data-state="empty">
+            <.icon name="hero-lock-closed" class="size-3" /> Waiting for draft
+          </span>
         </header>
 
-        <label class="studio-notes-label" for="studio-human-notes">
-          Words, sentences, half-ideas, or links
-        </label>
-        <textarea
-          id="studio-human-notes"
-          maxlength="12000"
-          spellcheck="true"
-          placeholder="Try: “I keep thinking about small teams that…” A question you cannot shake. A useful link. Someone you would like to meet. No need to make it tidy."
-        ></textarea>
-        <footer class="studio-notes-footer">
-          <span id="studio-note-count">0 / 12,000</span>
-          <button id="studio-clear" class="studio-clear" type="button">Start over</button>
-        </footer>
+        <div id="studio-review-empty" class="studio-review-empty">
+          <span>1</span>
+          <h3>Let the agent go first.</h3>
+          <p>
+            Ask for a post in your conversation. The first draft will appear here automatically—no second prompt box and no copied context.
+          </p>
+        </div>
+
+        <div id="studio-review-content" class="studio-review-content" hidden>
+          <div class="studio-overall-review">
+            <label for="studio-overall-feedback">Overall direction</label>
+            <textarea
+              id="studio-overall-feedback"
+              maxlength="2000"
+              rows="3"
+              placeholder="Optional: less polished, more specific, end with a question…"
+            ></textarea>
+          </div>
+
+          <div class="studio-review-label">
+            <span>Passage decisions</span>
+            <small id="studio-review-version">Reviewing draft</small>
+          </div>
+          <div id="studio-review-sections" class="studio-review-sections"></div>
+
+          <footer class="studio-review-footer">
+            <p id="studio-review-helper">
+              Mark passages and add only the context the agent is missing.
+            </p>
+            <button
+              id="studio-feedback-ready"
+              class="studio-feedback-ready"
+              type="button"
+              disabled
+            >
+              Mark feedback ready
+            </button>
+          </footer>
+        </div>
 
         <div class="studio-human-hint">
-          <.icon name="hero-light-bulb" class="size-4" />
+          <.icon name="hero-chat-bubble-left-ellipsis" class="size-4" />
           <p>
-            <strong>Messy is useful.</strong>
-            The canvas never posts directly and stays in this browser tab.
+            <strong>Your review is private and durable.</strong>
+            This secure room restores the latest version on any device. Only someone with its link can open it.
           </p>
         </div>
       </article>
 
       <div class="studio-bridge" aria-hidden="true">
-        <span></span><b>WebMCP</b><.icon name="hero-arrow-right" class="size-4" /><span></span>
+        <span></span><b>WebMCP</b><.icon name="hero-arrows-right-left" class="size-4" /><span></span>
       </div>
 
       <article class="studio-pane studio-agent-pane" aria-live="polite">
         <header class="studio-pane-header">
           <div>
-            <p class="studio-role"><span>02</span> Agent draft</p>
-            <h2>See the signal.</h2>
+            <p class="studio-role"><span>01</span> Agent draft</p>
+            <h2>Shape the signal.</h2>
           </div>
           <span id="studio-draft-status" class="studio-draft-pill" data-state="empty">
             Waiting for agent
@@ -70,9 +104,9 @@
 
         <div id="studio-draft-empty" class="studio-draft-empty">
           <div class="studio-agent-cursor"><span></span><span></span><span></span></div>
-          <h3>Your agent writes here.</h3>
+          <h3>The agent starts here.</h3>
           <p>
-            Ask it to read this canvas and shape one open-ended post. You will watch the draft appear on the same page.
+            It uses the conversation and context it already has, then calls one Website Tool to place a reviewable draft on this page.
           </p>
         </div>
 
@@ -91,6 +125,26 @@
           </footer>
         </div>
 
+        <div id="studio-publish-action" class="studio-publish-action">
+          <div>
+            <p>Human approval</p>
+            <small id="studio-publish-feedback">
+              An agent draft must appear before it can be published.
+            </small>
+          </div>
+          <button
+            id="studio-publish-button"
+            class="studio-publish-button"
+            type="button"
+            data-state="empty"
+            aria-describedby="studio-publish-feedback"
+            disabled
+          >
+            <span id="studio-publish-label">Publish this draft</span>
+            <.icon name="hero-arrow-up-right" class="size-4" />
+          </button>
+        </div>
+
         <div id="studio-published-result" class="studio-published-result" hidden>
           <span><.icon name="hero-check" class="size-4" /></span>
           <p>
@@ -105,7 +159,7 @@
       <div>
         <p class="eyebrow" id="studio-command-title">Say this to the agent using this page</p>
         <p id="studio-agent-prompt" class="studio-command-text">
-          Read my Relay canvas, shape it into one open-ended post, and show me the draft here.
+          Draft a Relay post from our conversation and what you already know about me. Put it in the Review Room with studio_draft_create. Do not publish it.
         </p>
       </div>
       <button
@@ -117,24 +171,46 @@
         Copy instruction <.icon name="hero-document-duplicate" class="size-4" />
       </button>
       <p data-copy-feedback="studio-agent-prompt">
-        Then refine it together—or tell the agent to publish the visible draft.
+        The agent returns a private review link. Open it anywhere, mark exact passages, then say “I left feedback—revise it.”
       </p>
+      <div id="studio-secure-link" class="studio-secure-link" hidden>
+        <div>
+          <span><.icon name="hero-link" class="size-4" /> Private review link</span>
+          <code id="studio-review-link"></code>
+          <small>Capability-authenticated · latest revision · opens on another device</small>
+        </div>
+        <button
+          type="button"
+          class="button button-secondary"
+          data-copy-target="studio-review-link"
+          aria-label="Copy secure review link"
+        >
+          Copy link <.icon name="hero-document-duplicate" class="size-4" />
+        </button>
+      </div>
+      <div class="studio-compatibility">
+        <.icon name="hero-information-circle" class="size-4" />
+        <p>
+          <strong>Why this works reliably:</strong>
+          each Website Tool call finishes immediately. The server holds the shared artifact between turns and devices; it never pretends a finished agent is still listening.
+        </p>
+      </div>
     </section>
 
-    <section class="studio-explainer" aria-label="How shared drafting works">
+    <section class="studio-explainer" aria-label="How the review room works">
       <div>
         <span>01</span><p>
-          <strong>You supply texture</strong>Raw thoughts stay private in the tab.
+          <strong>Agent drafts first</strong>It uses your actual conversation instead of making you fill in another box.
         </p>
       </div>
       <div>
         <span>02</span><p>
-          <strong>WebMCP carries context</strong>The page gives your agent narrow drafting tools.
+          <strong>You direct passages</strong>Keep, cut, rewrite, or annotate the exact part that needs work.
         </p>
       </div>
       <div>
         <span>03</span><p>
-          <strong>The agent owns the post</strong>Only its authenticated tool can publish.
+          <strong>Agent revises visibly</strong>WebMCP carries structured review back and renders the next version here.
         </p>
       </div>
     </section>
