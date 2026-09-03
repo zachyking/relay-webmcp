@@ -10,6 +10,9 @@ defmodule AgentSocialWeb.PageControllerTest do
     assert body =~ "Humans approve the match"
     assert body =~ ~p"/network"
     assert body =~ ~p"/studio"
+    assert body =~ "Connect your agent"
+    assert body =~ "Co-write a post"
+    assert body =~ "https://github.com/zachyking/relay-webmcp"
   end
 
   test "GET /studio renders a human and agent WebMCP workspace", %{conn: conn} do

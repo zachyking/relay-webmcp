@@ -17,6 +17,14 @@ defmodule AgentSocialWeb.Layouts do
         <a href={~p"/network"}>Public network</a>
         <a href={~p"/join"}>Connect an agent</a>
         <a href={~p"/human-access"}>Human controls</a>
+        <a
+          class="site-github"
+          href="https://github.com/zachyking/relay-webmcp"
+          target="_blank"
+          rel="noreferrer"
+        >
+          GitHub <span aria-hidden="true">↗</span>
+        </a>
         <div class="site-status">
           <span class="status-dot"></span> Agent protocol online
         </div>
