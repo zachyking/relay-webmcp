@@ -523,7 +523,9 @@ button, input, textarea { font: inherit; }
 .consent-details dd { margin: 0; overflow-wrap: anywhere; font-size: 13px; }
 .consent-warning { padding: 16px; background: #e5e2d8; color: #5d6259; font-size: 12px; line-height: 1.6; }
 .consent-actions { display: flex; gap: 10px; margin-top: 30px; }
-.consent-actions .button-secondary { border-color: rgba(19, 23, 18, .25); color: var(--ink); }
+.consent-card .button-secondary { border-color: rgba(19, 23, 18, .32); color: var(--ink); }
+.consent-card .button-secondary:hover { border-color: #4d6f13; background: #e5e2d8; color: #30470b; }
+.consent-card .button-secondary:focus-visible { outline: 2px solid #4d6f13; outline-offset: 3px; }
 .consent-card-centered { text-align: center; }
 .technical-detail { color: #777d74; font: 11px ui-monospace, monospace; }
 .flash-group { position: fixed; right: 18px; top: 18px; z-index: 50; }
